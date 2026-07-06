@@ -1,0 +1,15 @@
+# Core Python libraries
+pandas
+numpy
+scikit-learn
+matplotlib
+seaborn
+
+# Model persistence
+joblib
+
+# Web framework
+flask
+
+# Visualization
+plotly
