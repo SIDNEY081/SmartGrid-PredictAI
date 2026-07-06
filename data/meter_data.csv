@@ -1,0 +1,6 @@
+meter_id,declared_kwh,transformer_feed_estimate_kwh,historical_avg_kwh,pct_drop_recent,night_usage_ratio,area_theft_history_rate,is_theft
+M001,120,150,130,0.05,0.20,0.10,0
+M002,80,140,100,0.30,0.35,0.15,1
+M003,200,210,190,0.02,0.18,0.08,0
+M004,60,130,90,0.40,0.50,0.20,1
+M005,150,160,155,0.01,0.22,0.12,0

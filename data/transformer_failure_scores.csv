@@ -1,0 +1,6 @@
+transformer_id,age_years,load_factor,maintenance_score,oil_quality_index,temperature_rise_c,failure_within_1yr,failure_score,predicted_failure,tier
+T001,5,0.75,0.9,0.85,40,0,0.01,0,low
+T002,12,0.95,0.4,0.5,65,1,0.92,1,high
+T003,8,0.8,0.7,0.7,50,0,0.06,0,medium
+T004,15,0.98,0.3,0.45,70,1,0.92,1,high
+T005,3,0.6,0.95,0.9,35,0,0.01,0,low

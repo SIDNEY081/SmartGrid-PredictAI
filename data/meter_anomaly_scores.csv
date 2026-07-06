@@ -1,0 +1,6 @@
+meter_id,declared_kwh,transformer_feed_estimate_kwh,historical_avg_kwh,pct_drop_recent,night_usage_ratio,area_theft_history_rate,is_theft,feed_vs_declared_ratio,anomaly_score,flagged,tier
+M001,120,150,130,0.05,0.2,0.1,0,1.25,-0.12394580075082628,0,low
+M002,80,140,100,0.3,0.35,0.15,1,1.75,-0.0776296351332399,0,medium
+M003,200,210,190,0.02,0.18,0.08,0,1.05,-0.010740076813689159,0,high
+M004,60,130,90,0.4,0.5,0.2,1,2.1666666666666665,0.00505415379467733,1,high
+M005,150,160,155,0.01,0.22,0.12,0,1.0666666666666667,-0.11780613382799265,0,low
