@@ -74,3 +74,18 @@ python3 models/theft_detection_model.py       # train + score meters
    classifier trained on confirmed cases only).
 4. Push `risk_score` / `anomaly_score` outputs into a data warehouse table
    that Power BI reads directly
+
+## Core Models
+
+### 🔌 Transformer Failure Prediction
+- **Model:** Gradient Boosting Classifier (scikit-learn)
+- **Purpose:** Predicts probability of transformer failure within 30 days
+- **Output:** 0–100 risk score per transformer/month
+- **Dashboard Use:** Feeds Power BI health/risk ranking
+
+### ⚡ Theft & Anomaly Detection
+- **Model:** Isolation Forest (scikit-learn)
+- **Purpose:** Flags suspicious smart meter consumption patterns (tampering, bypass, illegal connections)
+- **Key Feature:** Ratio of transformer feed vs. declared meter usage
+- **Output:** 0–100 anomaly score per meter/month + investigation tiers
+- **Dashboard Use:** Prioritizes meters for field investigation
