@@ -13,3 +13,6 @@ flask
 
 # Visualization
 plotly
+
+# Testing
+pytest

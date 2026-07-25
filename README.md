@@ -21,6 +21,11 @@ SmartGrid-PredictAI/
   models/
     failure_prediction.py          # script version of the failure model
     theft_detection.py             # script version of the theft model
+  dashboard/
+    app.py                         # Flask app serving the planner dashboard
+    templates/index.html
+    static/style.css
+  tests/                           # pytest smoke tests for the schema + pipelines
   requirements.txt
 ```
 
@@ -84,6 +89,31 @@ python3 models/failure_prediction.py   # trains + scores -> data/transformer_ris
 python3 models/theft_detection.py      # trains + scores -> data/meter_theft_scores.csv, models/theft_model.joblib
 ```
 
+Dashboard — a planner-facing view of the script outputs (tier breakdown,
+flagged counts, top-15 highest-risk lists) for both models:
+
+```bash
+python3 dashboard/app.py   # -> http://127.0.0.1:5000
+```
+
+Run the scripts first (or at least once) so `transformer_risk_scores.csv` and
+`meter_theft_scores.csv` exist — the dashboard just reads them, it doesn't
+train anything itself. It needs internet access once to load Plotly from a
+CDN.
+
+## Tests
+
+```bash
+python3 -m pytest tests/   # run from the repo root
+```
+
+Covers: `data/*.csv` still has every column the models expect,
+`generate_data.py`'s schema stays in sync with `FEATURES`/`NUMERIC_FEATURES`
+in `models/*.py`, both pipelines run end-to-end without errors, and the two
+implementations' output filenames don't collide with the notebooks'. These
+tests would have caught every schema-drift bug found earlier in this
+project's history.
+
 ## Next steps
 
 1. Replace the synthetic CSVs in `data/` with real Eskom data once available,
@@ -92,3 +122,7 @@ python3 models/theft_detection.py      # trains + scores -> data/meter_theft_sco
 2. Add a feedback loop: investigation outcomes (confirmed theft / false
    positive, confirmed failure / false alarm) should flow back in to improve
    precision over time.
+3. `models/failure_prediction.py`'s alert threshold (picked for ~85% recall)
+   currently flags ~60% of transformers — the dashboard surfaced this. That's
+   too many for a crew to act on; tune `target_recall` down or add a
+   precision floor once real maintenance capacity numbers are known.

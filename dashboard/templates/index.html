@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SmartGrid PredictAI - Planner Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <header class="page-header">
+    <h1>SmartGrid PredictAI</h1>
+    <p>Planner view of the latest transformer-failure and meter-theft risk scores.</p>
+  </header>
+
+  <main>
+    {% for panel in [transformer, meter] %}
+    <section class="panel">
+      <h2>{{ panel.entity_label | capitalize }} — {{ panel.score_label }}</h2>
+
+      <div class="stat-row">
+        <div class="stat-tile">
+          <div class="stat-value">{{ panel.total }}</div>
+          <div class="stat-label">Total {{ panel.entity_label }}</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-value">{{ panel.flagged }}</div>
+          <div class="stat-label">Flagged for action</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-value">{{ panel.top_tier_count }}</div>
+          <div class="stat-label">{{ panel.top_tier_name }} tier</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-value">{{ panel.avg_score }}</div>
+          <div class="stat-label">Average {{ panel.score_label | lower }}</div>
+        </div>
+      </div>
+
+      <div class="content-grid">
+        <div class="chart-wrap">{{ panel.chart_html | safe }}</div>
+
+        <div class="table-wrap">
+          <table class="score-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>{{ panel.score_label }}</th>
+                <th>Tier</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in panel.top_rows %}
+              <tr>
+                <td>{{ row.id }}</td>
+                <td>{{ "%.1f"|format(row.score) }}</td>
+                <td>
+                  <span class="tier-badge">
+                    <span class="tier-dot" style="background: {{ panel.tier_color_map[row.tier] }}"></span>
+                    {{ row.tier | capitalize }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+    {% endfor %}
+  </main>
+
+  <footer>
+    Reads data/transformer_risk_scores.csv and data/meter_theft_scores.csv — regenerate with
+    <code>python3 models/failure_prediction.py</code> and <code>python3 models/theft_detection.py</code>.
+  </footer>
+</body>
+</html>
