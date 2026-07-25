@@ -81,6 +81,20 @@
     <code>python3 models/outage_forecasting.py</code> (in that order — outage forecasting depends on the failure model's output).
   </footer>
 
+  <button type="button" id="chat-toggle" aria-label="Ask about the data">Ask about the data</button>
+
+  <div id="chat-panel" hidden>
+    <div class="chat-header">
+      <span>Ask about the data</span>
+      <button type="button" id="chat-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="chat-log" id="chat-log"></div>
+    <form id="chat-form">
+      <input type="text" id="chat-input" placeholder="e.g. how many feeders are critical?" autocomplete="off">
+      <button type="submit">Send</button>
+    </form>
+  </div>
+
   <script>
     // All three panels render normally above (so Plotly measures real,
     // visible containers) - only after that do we hide two of them.
@@ -111,6 +125,51 @@
       });
 
       showPanel(buttons[0].dataset.panel);
+    })();
+
+    // Chat widget: rule-based, no LLM/network call beyond our own /api/chat.
+    (function () {
+      var toggle = document.getElementById("chat-toggle");
+      var panel = document.getElementById("chat-panel");
+      var closeBtn = document.getElementById("chat-close");
+      var log = document.getElementById("chat-log");
+      var form = document.getElementById("chat-form");
+      var input = document.getElementById("chat-input");
+
+      function addMessage(text, who) {
+        var row = document.createElement("div");
+        row.className = "chat-msg chat-msg-" + who;
+        row.textContent = text;
+        log.appendChild(row);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      function openChat() {
+        panel.hidden = false;
+        if (log.children.length === 0) {
+          addMessage("Ask me things like “how many transformers are critical?” or “what's the risk score for T0208?”", "bot");
+        }
+        input.focus();
+      }
+
+      toggle.addEventListener("click", openChat);
+      closeBtn.addEventListener("click", function () { panel.hidden = true; });
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var message = input.value.trim();
+        if (!message) return;
+        addMessage(message, "user");
+        input.value = "";
+        fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: message }),
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (data) { addMessage(data.reply, "bot"); })
+          .catch(function () { addMessage("Sorry, something went wrong reaching the server.", "bot"); });
+      });
     })();
   </script>
 </body>

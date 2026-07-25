@@ -26,6 +26,7 @@ SmartGrid-PredictAI/
     outage_forecasting.py          # feeder outage model (script only, no notebook - see below)
   dashboard/
     app.py                         # Flask app serving the planner dashboard
+    chatbot.py                     # rule-based Q&A over the score CSVs (no LLM)
     templates/index.html
     static/style.css
   tests/                           # pytest smoke tests for the schema + pipelines
@@ -129,6 +130,13 @@ Run the scripts first (or at least once) so `transformer_risk_scores.csv`,
 `meter_theft_scores.csv`, and `feeder_outage_scores.csv` exist — the
 dashboard just reads them, it doesn't train anything itself. It needs
 internet access once to load Plotly from a CDN.
+
+**Chat widget** ("Ask about the data", bottom-right of the dashboard) answers
+questions like "how many feeders are critical?" or "what's the risk score for
+T0208?" by keyword-matching the question onto a pandas filter over the same
+three score CSVs. It is **not** an LLM — no API key, no external network call,
+no cost, and no failure mode beyond the dashboard's own Flask server being up.
+See `dashboard/chatbot.py`.
 
 ## Tests
 

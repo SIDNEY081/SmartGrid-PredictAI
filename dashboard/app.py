@@ -15,7 +15,9 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
-from flask import Flask, render_template
+from flask import Flask, jsonify, render_template, request
+
+import chatbot
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
@@ -37,6 +39,7 @@ def tier_chart(counts, tier_order, entity_label):
             marker_color=STATUS_COLORS[: len(tier_order)],
             text=counts.values,
             textposition="outside",
+            cliponaxis=False,  # otherwise the tallest bar's label gets cut off by the plot area
             hovertemplate=f"%{{x}}: %{{y}} {entity_label}<extra></extra>",
         )
     )
@@ -45,9 +48,12 @@ def tier_chart(counts, tier_order, entity_label):
         plot_bgcolor="#fcfcfb",
         font=CHART_FONT,
         xaxis=dict(showgrid=False, linecolor="#c3c2b7"),
-        yaxis=dict(showgrid=True, gridcolor="#e1e0d9", zeroline=False, title=None),
+        yaxis=dict(
+            showgrid=True, gridcolor="#e1e0d9", zeroline=False, title=None,
+            range=[0, max(counts.values) * 1.18],  # headroom for the outside label
+        ),
         bargap=0.35,
-        margin=dict(l=40, r=20, t=20, b=40),
+        margin=dict(l=40, r=20, t=36, b=40),
         height=260,
         showlegend=False,
     )
@@ -115,6 +121,13 @@ def index():
         slug="feeder",
     )
     return render_template("index.html", transformer=transformer, meter=meter, feeder=feeder)
+
+
+@app.route("/api/chat", methods=["POST"])
+def chat():
+    message = (request.get_json(silent=True) or {}).get("message", "")
+    reply = chatbot.answer(message, DATA)
+    return jsonify({"reply": reply})
 
 
 if __name__ == "__main__":
