@@ -22,6 +22,10 @@ NUMERIC_FEATURES = [
 ]
 TARGET = "is_theft"  # used for evaluation only, not for training
 
+# Numeric companion to priority_tier so BI tools (Power BI, Tableau) can sort
+# by severity instead of alphabetically (Critical, Elevated, Low, Moderate).
+TIER_ORDER = {"low": 1, "moderate": 2, "elevated": 3, "critical": 4}
+
 
 def load_data(path="data/meter_data.csv"):
     df = pd.read_csv(path)
@@ -69,6 +73,7 @@ def score_all_meters(df, anomaly_score_0_100, flagged):
         result["anomaly_score"], bins=[-0.1, 40, 65, 85, 100],
         labels=["low", "moderate", "elevated", "critical"]
     )
+    result["priority_tier_order"] = result["priority_tier"].map(TIER_ORDER)
     return result.sort_values("anomaly_score", ascending=False)
 
 

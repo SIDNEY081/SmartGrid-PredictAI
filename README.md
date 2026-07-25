@@ -139,6 +139,14 @@ three score CSVs. It is **not** an LLM — no API key, no external network call,
 no cost, and no failure mode beyond the dashboard's own Flask server being up.
 See `dashboard/chatbot.py`.
 
+**Power BI / Tableau**: `transformer_risk_scores.csv`, `meter_theft_scores.csv`,
+and `feeder_outage_scores.csv` are meant to be imported directly (Get Data ->
+Text/CSV) - no server needed. Each has a numeric `*_tier_order` column
+(1=low … 4=critical) alongside the text tier column, so BI tools can sort by
+severity instead of alphabetically. `transformer_risk_scores.csv` and
+`feeder_outage_scores.csv` share a `feeder_id` column if you want to relate
+them in the data model.
+
 ## Tests
 
 ```bash

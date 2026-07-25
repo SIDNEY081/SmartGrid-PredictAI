@@ -29,6 +29,10 @@ TARGET = "outage_within_7_days"
 # real capacity - replace once known. Matches models/failure_prediction.py.
 CAPACITY_FRACTION = 0.15
 
+# Numeric companion to risk_tier so BI tools (Power BI, Tableau) can sort by
+# severity instead of alphabetically (Critical, Elevated, Low, Moderate).
+TIER_ORDER = {"low": 1, "moderate": 2, "elevated": 3, "critical": 4}
+
 
 def load_data(
     feeder_path="data/feeder_data.csv",
@@ -85,6 +89,7 @@ def score_all_feeders(model, df, capacity_fraction=CAPACITY_FRACTION):
         result["outage_risk_score"], bins=[-0.1, 20, 50, 75, 100],
         labels=["low", "moderate", "elevated", "critical"]
     )
+    result["risk_tier_order"] = result["risk_tier"].map(TIER_ORDER)
 
     cutoff = result["outage_risk_score"].quantile(1 - capacity_fraction)
     result["alert_flag"] = (result["outage_risk_score"] >= cutoff).astype(int)

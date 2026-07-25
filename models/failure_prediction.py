@@ -23,6 +23,10 @@ TARGET = "failure_within_1yr"
 # actually happen per week) - replace with a real number once known.
 CAPACITY_FRACTION = 0.15
 
+# Numeric companion to risk_tier so BI tools (Power BI, Tableau) can sort by
+# severity instead of alphabetically (Critical, Elevated, Low, Moderate).
+TIER_ORDER = {"low": 1, "moderate": 2, "elevated": 3, "critical": 4}
+
 
 def load_data(path="data/transformer_data.csv"):
     return pd.read_csv(path)
@@ -70,6 +74,7 @@ def score_all_transformers(model, df, capacity_fraction=CAPACITY_FRACTION):
     result = df[id_cols].copy()
     result["risk_score"] = (proba * 100).round(1)
     result["risk_tier"] = pd.cut(result["risk_score"], bins=[-0.1, 20, 50, 75, 100], labels=["low", "moderate", "elevated", "critical"])
+    result["risk_tier_order"] = result["risk_tier"].map(TIER_ORDER)
 
     # Capacity-based flag: the N riskiest transformers a crew could actually
     # inspect, rather than every transformer that clears a recall-tuned
