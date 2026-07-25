@@ -14,9 +14,9 @@ import numpy as np
 import pandas as pd
 
 RANDOM_SEED = 42
-N_TRANSFORMERS = 800
-N_METERS = 3000
-N_FEEDERS = 200
+N_TRANSFORMERS = 3000
+N_METERS = 10000
+N_FEEDERS = 1500
 
 
 def generate_transformer_data(n=N_TRANSFORMERS, n_feeders=N_FEEDERS, seed=RANDOM_SEED):
@@ -152,15 +152,15 @@ def generate_feeder_data(transformer_df, n=N_FEEDERS, seed=RANDOM_SEED):
     # feeders with a history of outages and several at-risk transformers on
     # them are the ones likely to go out again soon.
     risk = (
-        -6.4
-        + feeder_age_years * 0.05
-        + vegetation_encroachment_score * 2.6
-        + protection_equipment_age * 0.04
-        + peak_load_pct * 1.8
-        + load_growth_rate * 8.0
-        + historical_outage_count_1yr * 0.35
+        -9.3
+        + feeder_age_years * 0.095
+        + vegetation_encroachment_score * 4.4
+        + protection_equipment_age * 0.075
+        + peak_load_pct * 3.0
+        + load_growth_rate * 13.0
+        + historical_outage_count_1yr * 0.55
         + risky_counts * 0.30
-        + rng.normal(0, 0.4, size=n)
+        + rng.normal(0, 0.28, size=n)
     )
     prob_outage = 1 / (1 + np.exp(-risk))
     outage_within_7_days = rng.binomial(1, prob_outage)

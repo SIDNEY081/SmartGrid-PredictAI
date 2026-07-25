@@ -49,10 +49,10 @@ def load_data(
 
 
 def build_model():
-    # Shallower/fewer trees than the other models: only 200 feeders to train
-    # on, and the deeper default saturates probabilities toward 0/1 (see
-    # README) instead of spreading feeders across risk tiers.
-    return GradientBoostingClassifier(n_estimators=100, max_depth=2, learning_rate=0.08, subsample=0.8, random_state=42)
+    # Same capacity as failure_prediction.py - with 1,500 feeders to train
+    # on there's enough data that shallower/fewer trees (tuned for an
+    # earlier 200-feeder dataset) were underfitting instead of helping.
+    return GradientBoostingClassifier(n_estimators=200, max_depth=3, learning_rate=0.08, subsample=0.8, random_state=42)
 
 
 def train_model(df):

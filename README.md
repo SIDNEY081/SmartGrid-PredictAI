@@ -9,9 +9,9 @@ electricity theft detection, and feeder outage forecasting.
 SmartGrid-PredictAI/
   data/
     generate_data.py               # builds the synthetic transformer/meter/feeder datasets below
-    transformer_data.csv           # 800 transformers (each on a feeder), ~17% failure_within_1yr rate
-    meter_data.csv                 # 3,000 meters, ~11% is_theft rate
-    feeder_data.csv                # 200 feeders, ~15% outage_within_7_days rate
+    transformer_data.csv           # 3,000 transformers (each on a feeder), ~19% failure_within_1yr rate
+    meter_data.csv                 # 10,000 meters, ~10% is_theft rate
+    feeder_data.csv                # 1,500 feeders, ~13% outage_within_7_days rate
     transformer_failure_scores.csv # notebook output: failure_score + tier per transformer
     meter_anomaly_scores.csv       # notebook output: anomaly_score + tier per meter
     transformer_risk_scores.csv    # script output: risk_score + tier per transformer
@@ -49,15 +49,16 @@ the schema-drift and inflated-metric bugs found earlier in this project, so
 the third model isn't repeating that pattern.
 
 Both failure-prediction implementations now evaluate on a held-out test split
-before refitting on the full dataset for deployment scoring (ROC-AUC ≈ 0.77
-in the script, ≈ 0.80 in the notebook — small difference is just
-scaler/split-fold noise). The theft/anomaly side evaluates in-sample in both
-implementations, which is fine there since Isolation Forest is unsupervised
-and can't memorize labels it never sees; both report a consistent
-ROC-AUC ≈ 0.98 against the synthetic `is_theft` labels. Outage forecasting
-evaluates on a held-out split too (ROC-AUC ≈ 0.73), but with only 200
-feeders the 40-row test split has just ~6 positive examples — treat that
-number as "clearly better than chance," not a precise estimate.
+before refitting on the full dataset for deployment scoring (ROC-AUC ≈ 0.86
+in both the script and the notebook). The theft/anomaly side evaluates
+in-sample in both implementations, which is fine there since Isolation Forest
+is unsupervised and can't memorize labels it never sees; both report a
+consistent ROC-AUC ≈ 0.98 against the synthetic `is_theft` labels. Outage
+forecasting evaluates on a held-out split too (ROC-AUC ≈ 0.75) - weaker than
+the other two, which tracks: feeder outages depend on real-world factors
+(weather, vegetation growth, crew response time) this synthetic dataset
+doesn't model, so treat it as "clearly better than chance," not a precise
+estimate.
 
 ## Why these model choices
 
@@ -86,11 +87,11 @@ how many transformers on that feeder the failure model already flagged
 place these three models actually talk to each other: a feeder with several
 already-risky transformers on it is a more plausible near-term outage than
 one judged purely on its own attributes. Run `models/failure_prediction.py`
-before `models/outage_forecasting.py` for this reason. The model uses fewer,
-shallower trees than the failure model (`n_estimators=100, max_depth=2`) -
-with only 200 feeders to train on, the deeper default was saturating
-predicted probabilities toward 0/1 instead of spreading feeders across risk
-tiers.
+before `models/outage_forecasting.py` for this reason. It uses the same
+model capacity as the failure model (`n_estimators=200, max_depth=3`) - an
+earlier, much smaller version of `data/feeder_data.csv` (200 rows) needed
+shallower trees to avoid saturating predicted probabilities toward 0/1, but
+that stopped being true once the feeder count grew.
 
 ## How to run
 
@@ -165,7 +166,7 @@ schema-drift bug found earlier in this project's history.
    a recall-tuned probability threshold — for the failure model that had
    been ~60% of the fleet, not a usable work list. 15% is still a guess for
    both; replace once real weekly maintenance/dispatch capacity is known.
-4. `data/feeder_data.csv` is only 200 rows, small enough that held-out
-   evaluation metrics for outage forecasting are noisy (~6 positive examples
-   in the test split) and outage probabilities still cluster somewhat at the
-   extremes. More feeders (or a real feeder count) would make both better.
+4. Outage forecasting's ROC-AUC (~0.75) is the weakest of the three models
+   and likely stays that way even with more synthetic feeders - the gap is
+   about missing real-world signal (weather, live vegetation growth, crew
+   response times), not sample size.
