@@ -28,6 +28,11 @@ app = Flask(__name__)
 # never reused for anything else on the page.
 STATUS_COLORS = ["#0ca30c", "#fab219", "#ec835a", "#d03b3b"]
 
+# Per-entity accent colors (blue/orange/aqua) live in static/style.css,
+# keyed off each element's data-panel attribute rather than passed through
+# here - avoids depending on CSS custom-property resolution for something
+# only ever used for nav/header identity, never tier severity.
+
 CHART_FONT = dict(family='system-ui, -apple-system, "Segoe UI", sans-serif', color="#0b0b0b")
 
 
@@ -73,9 +78,9 @@ def build_panel(csv_path, id_col, score_col, score_label, tier_col, flag_col, ti
     return {
         "slug": slug,
         "entity_label": entity_label,
-        "total": len(df),
-        "flagged": int(df[flag_col].sum()),
-        "top_tier_count": int(counts.iloc[-1]),
+        "total": f"{len(df):,}",
+        "flagged": f"{int(df[flag_col].sum()):,}",
+        "top_tier_count": f"{int(counts.iloc[-1]):,}",
         "top_tier_name": tier_order[-1].title(),
         "avg_score": round(df[score_col].mean(), 1),
         "score_label": score_label,

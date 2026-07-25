@@ -7,21 +7,38 @@
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 </head>
 <body>
+  {% macro entity_icon(slug) -%}
+    {%- if slug == "transformer" -%}
+    <svg class="entity-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="13,2 3,14 10,14 9,22 21,10 13,10"/></svg>
+    {%- elif slug == "meter" -%}
+    <svg class="entity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><line x1="12" y1="13" x2="16" y2="9"/><circle cx="12" cy="13" r="1.4" fill="currentColor" stroke="none"/></svg>
+    {%- else -%}
+    <svg class="entity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="18" r="2" fill="currentColor" stroke="none"/><circle cx="18" cy="18" r="2" fill="currentColor" stroke="none"/><circle cx="12" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="12" y1="6" x2="6" y2="18"/><line x1="12" y1="6" x2="18" y2="18"/></svg>
+    {%- endif -%}
+  {%- endmacro %}
+
   <header class="page-header">
-    <h1>SmartGrid PredictAI</h1>
-    <p>Planner view of the latest transformer-failure, meter-theft, and feeder-outage risk scores.</p>
+    <div class="page-header-brand">
+      <span class="brand-mark">SG</span>
+      <div>
+        <h1>SmartGrid PredictAI</h1>
+        <p>Planner view of the latest transformer-failure, meter-theft, and feeder-outage risk scores.</p>
+      </div>
+    </div>
   </header>
 
   <nav class="tab-nav">
     {% for panel in [transformer, meter, feeder] %}
-    <button type="button" class="tab-btn" data-panel="{{ panel.slug }}">{{ panel.entity_label | capitalize }}</button>
+    <button type="button" class="tab-btn" data-panel="{{ panel.slug }}">
+      {{ entity_icon(panel.slug) }}{{ panel.entity_label | capitalize }}
+    </button>
     {% endfor %}
   </nav>
 
   <main>
     {% for panel in [transformer, meter, feeder] %}
     <section class="panel" data-panel="{{ panel.slug }}">
-      <h2>{{ panel.entity_label | capitalize }} — {{ panel.score_label }}</h2>
+      <h2>{{ entity_icon(panel.slug) }}{{ panel.entity_label | capitalize }} — {{ panel.score_label }}</h2>
 
       <div class="stat-row">
         <div class="stat-tile">
@@ -109,13 +126,24 @@
     (function () {
       var buttons = document.querySelectorAll(".tab-btn");
       var panels = document.querySelectorAll("section.panel");
+      var ACCENTS = { transformer: "#2a78d6", meter: "#eb6834", feeder: "#1baf7a" };
 
       function showPanel(slug) {
         panels.forEach(function (p) {
           p.style.display = p.dataset.panel === slug ? "" : "none";
         });
         buttons.forEach(function (b) {
-          b.classList.toggle("active", b.dataset.panel === slug);
+          var isActive = b.dataset.panel === slug;
+          b.classList.toggle("active", isActive);
+          // Set inline style directly rather than relying purely on a CSS
+          // class+attribute selector - sidesteps a stale-computed-style
+          // quirk seen where the accent color didn't apply on the button
+          // toggled active during the very first synchronous render pass.
+          var accent = isActive ? ACCENTS[b.dataset.panel] : "";
+          b.style.color = accent;
+          b.style.borderBottomColor = accent;
+          var icon = b.querySelector(".entity-icon");
+          if (icon) icon.style.color = accent;
         });
         var shown = document.querySelector('section.panel[data-panel="' + slug + '"]');
         var plot = shown && shown.querySelector(".js-plotly-plot");
@@ -173,6 +201,20 @@
         }
       });
       closeBtn.addEventListener("click", closeChat);
+
+      // Belt-and-braces: Escape key and clicking anywhere outside the
+      // panel also close it, in case the small (x) target is ever hard to
+      // hit precisely.
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && !panel.hidden) {
+          closeChat();
+        }
+      });
+      document.addEventListener("click", function (e) {
+        if (panel.hidden) return;
+        if (panel.contains(e.target) || toggle.contains(e.target)) return;
+        closeChat();
+      });
 
       function sendMessage(message) {
         message = message.trim();
