@@ -10,30 +10,29 @@ SmartGrid-PredictAI/
   data/
     transformer_data.csv           # sample transformer readings + failure_within_1yr label
     meter_data.csv                 # sample smart-meter readings + is_theft label
-    transformer_failure_scores.csv # model output: failure_score + tier per transformer
-    meter_anomaly_scores.csv       # model output: anomaly_score + tier per meter
+    transformer_failure_scores.csv # notebook output: failure_score + tier per transformer
+    meter_anomaly_scores.csv       # notebook output: anomaly_score + tier per meter
+    transformer_risk_scores.csv    # script output: risk_score + tier per transformer
+    meter_theft_scores.csv         # script output: anomaly_score + tier per meter
   notebooks/
     transformer_failure_model.ipynb  # Random Forest classifier -> failure_score
     theft_detection_model.ipynb      # Isolation Forest anomaly detector -> anomaly_score
   models/
-    failure_prediction.py          # draft script version of the failure model (schema not yet
-                                    # in sync with data/transformer_data.csv - see note below)
-    theft_detection.py             # draft script version of the theft model (schema not yet
-                                    # in sync with data/meter_data.csv - see note below)
+    failure_prediction.py          # script version of the failure model
+    theft_detection.py             # script version of the theft model
   requirements.txt
 ```
 
-## Current source of truth
+## Notebooks vs. scripts
 
-The **notebooks** are the working, up-to-date pipeline — they're what actually
-produced `transformer_failure_scores.csv` and `meter_anomaly_scores.csv`.
-
-The `.py` files under `models/` were an earlier attempt to turn the notebooks
-into standalone scripts, but their feature lists (e.g.
-`capacity_kva`, `dissolved_gas_ppm`, `area_id`, `customer_type`) don't match
-the columns actually present in `data/transformer_data.csv` /
-`data/meter_data.csv` yet, so running them as-is will fail. Treat them as a
-refactor-in-progress rather than the current pipeline.
+Both pipelines are implemented twice: once as notebooks (`notebooks/`) and
+once as standalone scripts (`models/*.py`). They use the same features and
+model families but are independent implementations — evaluated in-sample
+against the small demo CSVs in `data/`, since there isn't enough data yet for
+a meaningful held-out test split. They intentionally write to **different**
+output files (`transformer_failure_scores.csv`/`meter_anomaly_scores.csv` for
+the notebooks vs. `transformer_risk_scores.csv`/`meter_theft_scores.csv` for
+the scripts) so running one doesn't clobber the other's results.
 
 ## Why these model choices
 
@@ -54,7 +53,7 @@ declared — a classic real-world signature of bypass or tampering.
 
 ## How to run
 
-Open and run all cells in:
+Notebooks — open and run all cells in:
 
 ```bash
 notebooks/transformer_failure_model.ipynb   # trains + scores -> data/transformer_failure_scores.csv
@@ -64,13 +63,18 @@ notebooks/theft_detection_model.ipynb       # trains + scores -> data/meter_anom
 Both notebooks read their input CSV from `../data/...`, so run them from
 inside the `notebooks/` working directory (Jupyter does this by default).
 
+Scripts — run from the repo root:
+
+```bash
+python3 models/failure_prediction.py   # trains + scores -> data/transformer_risk_scores.csv, models/failure_model.joblib
+python3 models/theft_detection.py      # trains + scores -> data/meter_theft_scores.csv, models/theft_model.joblib
+```
+
 ## Next steps
 
-1. Bring `models/failure_prediction.py` and `models/theft_detection.py` in
-   line with the notebooks so there's a script-based pipeline for
-   automation/CI, not just notebooks.
-2. Replace the small sample CSVs in `data/` with larger synthetic (or real)
-   datasets once the schema is finalized.
-3. Add a feedback loop: investigation outcomes (confirmed theft / false
+1. Replace the small sample CSVs in `data/` with larger synthetic (or real)
+   datasets, and reinstate a proper held-out train/test split in
+   `models/failure_prediction.py` once there's enough data for it.
+2. Add a feedback loop: investigation outcomes (confirmed theft / false
    positive, confirmed failure / false alarm) should flow back in to improve
    precision over time.

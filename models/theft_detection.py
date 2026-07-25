@@ -58,7 +58,7 @@ def train_model(df, contamination=0.08):
 
 
 def score_all_meters(df, anomaly_score_0_100, flagged):
-    result = df[["meter_id", "area_id", "month", "customer_type"]].copy()
+    result = df[["meter_id"]].copy()
     result["anomaly_score"] = anomaly_score_0_100.round(1)
     result["investigation_flag"] = flagged.astype(int)
     result["priority_tier"] = pd.cut(
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     df = load_data()
     model, scaler, feature_cols, anomaly_scores, flagged = train_model(df)
     scored = score_all_meters(df, anomaly_scores, flagged)
-    scored.to_csv("data/meter_anomaly_scores.csv", index=False)
+    scored.to_csv("data/meter_theft_scores.csv", index=False)
     joblib.dump({"model": model, "scaler": scaler, "features": feature_cols}, "models/theft_model.joblib")
     print("Saved model -> models/theft_model.joblib")
-    print("Saved scores -> data/meter_anomaly_scores.csv")
+    print("Saved scores -> data/meter_theft_scores.csv")

@@ -1,0 +1,6 @@
+meter_id,anomaly_score,investigation_flag,priority_tier
+M004,100.0,1,urgent
+M003,69.6,0,high
+M002,34.7,0,low
+M005,0.6,0,low
+M001,0.0,0,low

@@ -1,0 +1,6 @@
+transformer_id,risk_score,risk_tier,alert_flag
+T002,100.0,critical,1
+T004,100.0,critical,1
+T001,0.0,low,1
+T003,0.0,low,1
+T005,0.0,low,1
