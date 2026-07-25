@@ -34,14 +34,13 @@ model families but are independent implementations, and they write to
 `meter_theft_scores.csv` for the scripts) so running one doesn't clobber the
 other's results.
 
-**Evaluation methodology differs, and it matters:** `models/failure_prediction.py`
-evaluates on a held-out test split (ROC-AUC ≈ 0.77 on the current synthetic
-data). `notebooks/transformer_failure_model.ipynb` evaluates in-sample (trains
-and scores the same rows), which lets the Random Forest memorize the data and
-report a misleading ROC-AUC of 1.0. Trust the script's number, not the
-notebook's, for the failure model. (The theft/anomaly side doesn't have this
-problem — Isolation Forest is unsupervised and both implementations report a
-consistent ROC-AUC ≈ 0.98 against the synthetic `is_theft` labels.)
+Both failure-prediction implementations now evaluate on a held-out test split
+before refitting on the full dataset for deployment scoring (ROC-AUC ≈ 0.77
+in the script, ≈ 0.80 in the notebook — small difference is just
+scaler/split-fold noise). The theft/anomaly side evaluates in-sample in both
+implementations, which is fine there since Isolation Forest is unsupervised
+and can't memorize labels it never sees; both report a consistent
+ROC-AUC ≈ 0.98 against the synthetic `is_theft` labels.
 
 ## Why these model choices
 
@@ -87,12 +86,9 @@ python3 models/theft_detection.py      # trains + scores -> data/meter_theft_sco
 
 ## Next steps
 
-1. Give `notebooks/transformer_failure_model.ipynb` a held-out train/test
-   split (matching `models/failure_prediction.py`) so its reported ROC-AUC
-   stops being inflated by in-sample evaluation.
-2. Replace the synthetic CSVs in `data/` with real Eskom data once available,
+1. Replace the synthetic CSVs in `data/` with real Eskom data once available,
    matching the same column schema (or update `generate_data.py` /
    `FEATURES` in the models if the real schema differs).
-3. Add a feedback loop: investigation outcomes (confirmed theft / false
+2. Add a feedback loop: investigation outcomes (confirmed theft / false
    positive, confirmed failure / false alarm) should flow back in to improve
    precision over time.
