@@ -1,26 +1,29 @@
 # SmartGrid PredictAI
 
-Synthetic-data prototype for Eskom's transformer failure prediction and
-electricity theft detection platform.
+Synthetic-data prototype for Eskom's transformer failure prediction,
+electricity theft detection, and feeder outage forecasting.
 
 ## Structure
 
 ```
 SmartGrid-PredictAI/
   data/
-    generate_data.py               # builds the synthetic transformer/meter datasets below
-    transformer_data.csv           # 800 transformers, ~17% failure_within_1yr rate
+    generate_data.py               # builds the synthetic transformer/meter/feeder datasets below
+    transformer_data.csv           # 800 transformers (each on a feeder), ~17% failure_within_1yr rate
     meter_data.csv                 # 3,000 meters, ~11% is_theft rate
+    feeder_data.csv                # 200 feeders, ~15% outage_within_7_days rate
     transformer_failure_scores.csv # notebook output: failure_score + tier per transformer
     meter_anomaly_scores.csv       # notebook output: anomaly_score + tier per meter
     transformer_risk_scores.csv    # script output: risk_score + tier per transformer
     meter_theft_scores.csv         # script output: anomaly_score + tier per meter
+    feeder_outage_scores.csv       # script output: outage_risk_score + tier per feeder
   notebooks/
     transformer_failure_model.ipynb  # Random Forest classifier -> failure_score
     theft_detection_model.ipynb      # Isolation Forest anomaly detector -> anomaly_score
   models/
     failure_prediction.py          # script version of the failure model
     theft_detection.py             # script version of the theft model
+    outage_forecasting.py          # feeder outage model (script only, no notebook - see below)
   dashboard/
     app.py                         # Flask app serving the planner dashboard
     templates/index.html
@@ -31,13 +34,18 @@ SmartGrid-PredictAI/
 
 ## Notebooks vs. scripts
 
-Both pipelines are implemented twice: once as notebooks (`notebooks/`) and
-once as standalone scripts (`models/*.py`). They use the same features and
-model families but are independent implementations, and they write to
-**different** output files (`transformer_failure_scores.csv`/
+The failure and theft pipelines are each implemented twice: once as notebooks
+(`notebooks/`) and once as standalone scripts (`models/*.py`). They use the
+same features and model families but are independent implementations, and
+they write to **different** output files (`transformer_failure_scores.csv`/
 `meter_anomaly_scores.csv` for the notebooks vs. `transformer_risk_scores.csv`/
 `meter_theft_scores.csv` for the scripts) so running one doesn't clobber the
 other's results.
+
+**Outage forecasting is script-only, deliberately** — it doesn't have a
+notebook twin. Duplicating an implementation is exactly what caused most of
+the schema-drift and inflated-metric bugs found earlier in this project, so
+the third model isn't repeating that pattern.
 
 Both failure-prediction implementations now evaluate on a held-out test split
 before refitting on the full dataset for deployment scoring (ROC-AUC ≈ 0.77
@@ -45,7 +53,10 @@ in the script, ≈ 0.80 in the notebook — small difference is just
 scaler/split-fold noise). The theft/anomaly side evaluates in-sample in both
 implementations, which is fine there since Isolation Forest is unsupervised
 and can't memorize labels it never sees; both report a consistent
-ROC-AUC ≈ 0.98 against the synthetic `is_theft` labels.
+ROC-AUC ≈ 0.98 against the synthetic `is_theft` labels. Outage forecasting
+evaluates on a held-out split too (ROC-AUC ≈ 0.73), but with only 200
+feeders the 40-row test split has just ~6 positive examples — treat that
+number as "clearly better than chance," not a precise estimate.
 
 ## Why these model choices
 
@@ -64,12 +75,28 @@ how a real deployment would work. The strongest engineered feature is the
 ratio between what the transformer fed to a connection and what the meter
 declared — a classic real-world signature of bypass or tampering.
 
+**Outage forecasting — Gradient Boosting Classifier (supervised)**
+Feeder-level outage history is Eskom's own labeled record, same reasoning as
+failure prediction. The interesting part is the feature set: alongside a
+feeder's own condition (age, vegetation encroachment, protection equipment
+age, load, historical outages), it includes `critical_transformer_count` —
+how many transformers on that feeder the failure model already flagged
+`critical` — pulled from `data/transformer_risk_scores.csv`. That's the one
+place these three models actually talk to each other: a feeder with several
+already-risky transformers on it is a more plausible near-term outage than
+one judged purely on its own attributes. Run `models/failure_prediction.py`
+before `models/outage_forecasting.py` for this reason. The model uses fewer,
+shallower trees than the failure model (`n_estimators=100, max_depth=2`) -
+with only 200 feeders to train on, the deeper default was saturating
+predicted probabilities toward 0/1 instead of spreading feeders across risk
+tiers.
+
 ## How to run
 
 Regenerate the synthetic data (run from the repo root):
 
 ```bash
-python3 data/generate_data.py   # -> data/transformer_data.csv, data/meter_data.csv
+python3 data/generate_data.py   # -> data/transformer_data.csv, data/meter_data.csv, data/feeder_data.csv
 ```
 
 Notebooks — open and run all cells in:
@@ -82,24 +109,26 @@ notebooks/theft_detection_model.ipynb       # trains + scores -> data/meter_anom
 Both notebooks read their input CSV from `../data/...`, so run them from
 inside the `notebooks/` working directory (Jupyter does this by default).
 
-Scripts — run from the repo root:
+Scripts — run from the repo root, **in this order** (outage forecasting
+reads failure prediction's output):
 
 ```bash
 python3 models/failure_prediction.py   # trains + scores -> data/transformer_risk_scores.csv, models/failure_model.joblib
 python3 models/theft_detection.py      # trains + scores -> data/meter_theft_scores.csv, models/theft_model.joblib
+python3 models/outage_forecasting.py   # trains + scores -> data/feeder_outage_scores.csv, models/outage_model.joblib
 ```
 
 Dashboard — a planner-facing view of the script outputs (tier breakdown,
-flagged counts, top-15 highest-risk lists) for both models:
+flagged counts, top-15 highest-risk lists) for all three models:
 
 ```bash
 python3 dashboard/app.py   # -> http://127.0.0.1:5000
 ```
 
-Run the scripts first (or at least once) so `transformer_risk_scores.csv` and
-`meter_theft_scores.csv` exist — the dashboard just reads them, it doesn't
-train anything itself. It needs internet access once to load Plotly from a
-CDN.
+Run the scripts first (or at least once) so `transformer_risk_scores.csv`,
+`meter_theft_scores.csv`, and `feeder_outage_scores.csv` exist — the
+dashboard just reads them, it doesn't train anything itself. It needs
+internet access once to load Plotly from a CDN.
 
 ## Tests
 
@@ -109,10 +138,11 @@ python3 -m pytest tests/   # run from the repo root
 
 Covers: `data/*.csv` still has every column the models expect,
 `generate_data.py`'s schema stays in sync with `FEATURES`/`NUMERIC_FEATURES`
-in `models/*.py`, both pipelines run end-to-end without errors, and the two
-implementations' output filenames don't collide with the notebooks'. These
-tests would have caught every schema-drift bug found earlier in this
-project's history.
+in `models/*.py`, all three pipelines run end-to-end without errors, the
+failure/theft scripts' output filenames don't collide with the notebooks',
+and each capacity-based alert flag actually flags close to
+`CAPACITY_FRACTION` of the fleet. These tests would have caught every
+schema-drift bug found earlier in this project's history.
 
 ## Next steps
 
@@ -122,8 +152,12 @@ project's history.
 2. Add a feedback loop: investigation outcomes (confirmed theft / false
    positive, confirmed failure / false alarm) should flow back in to improve
    precision over time.
-3. `models/failure_prediction.py` now flags the riskiest 15% of transformers
-   (`CAPACITY_FRACTION`) instead of everything clearing a recall-tuned
-   probability threshold — that had been ~60% of the fleet, not a usable
-   work list. 15% is still a guess; replace it once real weekly maintenance
-   capacity is known.
+3. `models/failure_prediction.py` and `models/outage_forecasting.py` both
+   flag the riskiest 15% (`CAPACITY_FRACTION`) instead of everything clearing
+   a recall-tuned probability threshold — for the failure model that had
+   been ~60% of the fleet, not a usable work list. 15% is still a guess for
+   both; replace once real weekly maintenance/dispatch capacity is known.
+4. `data/feeder_data.csv` is only 200 rows, small enough that held-out
+   evaluation metrics for outage forecasting are noisy (~6 positive examples
+   in the test split) and outage probabilities still cluster somewhat at the
+   extremes. More feeders (or a real feeder count) would make both better.

@@ -66,7 +66,8 @@ def train_model(df, model_type="gradient_boosting"):
 
 def score_all_transformers(model, df, capacity_fraction=CAPACITY_FRACTION):
     proba = model.predict_proba(df[FEATURES])[:, 1]
-    result = df[["transformer_id"]].copy()
+    id_cols = ["transformer_id", "feeder_id"] if "feeder_id" in df.columns else ["transformer_id"]
+    result = df[id_cols].copy()
     result["risk_score"] = (proba * 100).round(1)
     result["risk_tier"] = pd.cut(result["risk_score"], bins=[-0.1, 20, 50, 75, 100], labels=["low", "moderate", "elevated", "critical"])
 

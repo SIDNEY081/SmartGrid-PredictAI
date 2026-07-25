@@ -1,9 +1,10 @@
 """
 SmartGrid PredictAI - Planner Dashboard
 =========================================
-Serves the script-pipeline outputs (data/transformer_risk_scores.csv and
-data/meter_theft_scores.csv) as a planner-facing view: how many transformers/
-meters need attention this week, and which ones.
+Serves the script-pipeline outputs (data/transformer_risk_scores.csv,
+data/meter_theft_scores.csv, data/feeder_outage_scores.csv) as a
+planner-facing view: how many transformers/meters/feeders need attention
+this week, and which ones.
 
 Run from anywhere:
     python3 dashboard/app.py
@@ -99,7 +100,17 @@ def index():
         tier_order=["low", "moderate", "high", "urgent"],
         entity_label="meters",
     )
-    return render_template("index.html", transformer=transformer, meter=meter)
+    feeder = build_panel(
+        DATA / "feeder_outage_scores.csv",
+        id_col="feeder_id",
+        score_col="outage_risk_score",
+        score_label="Outage risk score",
+        tier_col="risk_tier",
+        flag_col="alert_flag",
+        tier_order=["low", "moderate", "elevated", "critical"],
+        entity_label="feeders",
+    )
+    return render_template("index.html", transformer=transformer, meter=meter, feeder=feeder)
 
 
 if __name__ == "__main__":

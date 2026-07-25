@@ -9,11 +9,11 @@
 <body>
   <header class="page-header">
     <h1>SmartGrid PredictAI</h1>
-    <p>Planner view of the latest transformer-failure and meter-theft risk scores.</p>
+    <p>Planner view of the latest transformer-failure, meter-theft, and feeder-outage risk scores.</p>
   </header>
 
   <main>
-    {% for panel in [transformer, meter] %}
+    {% for panel in [transformer, meter, feeder] %}
     <section class="panel">
       <h2>{{ panel.entity_label | capitalize }} — {{ panel.score_label }}</h2>
 
@@ -70,8 +70,9 @@
   </main>
 
   <footer>
-    Reads data/transformer_risk_scores.csv and data/meter_theft_scores.csv — regenerate with
-    <code>python3 models/failure_prediction.py</code> and <code>python3 models/theft_detection.py</code>.
+    Reads data/transformer_risk_scores.csv, data/meter_theft_scores.csv, and data/feeder_outage_scores.csv — regenerate with
+    <code>python3 models/failure_prediction.py</code>, <code>python3 models/theft_detection.py</code>, and
+    <code>python3 models/outage_forecasting.py</code> (in that order — outage forecasting depends on the failure model's output).
   </footer>
 </body>
 </html>
