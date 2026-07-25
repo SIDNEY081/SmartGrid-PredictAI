@@ -122,7 +122,8 @@ project's history.
 2. Add a feedback loop: investigation outcomes (confirmed theft / false
    positive, confirmed failure / false alarm) should flow back in to improve
    precision over time.
-3. `models/failure_prediction.py`'s alert threshold (picked for ~85% recall)
-   currently flags ~60% of transformers — the dashboard surfaced this. That's
-   too many for a crew to act on; tune `target_recall` down or add a
-   precision floor once real maintenance capacity numbers are known.
+3. `models/failure_prediction.py` now flags the riskiest 15% of transformers
+   (`CAPACITY_FRACTION`) instead of everything clearing a recall-tuned
+   probability threshold — that had been ~60% of the fleet, not a usable
+   work list. 15% is still a guess; replace it once real weekly maintenance
+   capacity is known.

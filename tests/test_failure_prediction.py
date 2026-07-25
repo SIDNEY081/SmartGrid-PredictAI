@@ -25,10 +25,21 @@ def test_pipeline_end_to_end():
     df = fp.load_data()
     model, threshold = fp.train_model(df)
 
-    scored = fp.score_all_transformers(model, df, threshold)
+    scored = fp.score_all_transformers(model, df)
     assert len(scored) == len(df)
     assert {"transformer_id", "risk_score", "risk_tier", "alert_flag"} <= set(scored.columns)
     assert scored["transformer_id"].is_unique
+
+
+def test_alert_flag_matches_capacity_fraction():
+    # The flag is a capacity-based cutoff (top N%), not a recall-tuned
+    # probability threshold - guards against it silently flagging most of
+    # the fleet again (it did, at ~60%, before this was fixed).
+    df = fp.load_data()
+    model, _ = fp.train_model(df)
+    scored = fp.score_all_transformers(model, df, capacity_fraction=0.15)
+    flagged_rate = scored["alert_flag"].mean()
+    assert abs(flagged_rate - 0.15) < 0.02
 
 
 def test_output_path_does_not_collide_with_notebook_output():
