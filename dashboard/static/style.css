@@ -39,6 +39,35 @@ header.page-header p {
   font-size: 14px;
 }
 
+.tab-nav {
+  display: flex;
+  gap: 8px;
+  padding: 4px 32px 16px;
+  border-bottom: 1px solid var(--gridline);
+}
+
+.tab-btn {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.tab-btn:hover {
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+.tab-btn.active {
+  background: var(--text-primary);
+  color: #ffffff;
+}
+
 main {
   padding: 12px 32px 48px;
   display: flex;

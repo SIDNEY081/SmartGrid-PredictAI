@@ -12,9 +12,15 @@
     <p>Planner view of the latest transformer-failure, meter-theft, and feeder-outage risk scores.</p>
   </header>
 
+  <nav class="tab-nav">
+    {% for panel in [transformer, meter, feeder] %}
+    <button type="button" class="tab-btn" data-panel="{{ panel.slug }}">{{ panel.entity_label | capitalize }}</button>
+    {% endfor %}
+  </nav>
+
   <main>
     {% for panel in [transformer, meter, feeder] %}
-    <section class="panel">
+    <section class="panel" data-panel="{{ panel.slug }}">
       <h2>{{ panel.entity_label | capitalize }} — {{ panel.score_label }}</h2>
 
       <div class="stat-row">
@@ -74,5 +80,38 @@
     <code>python3 models/failure_prediction.py</code>, <code>python3 models/theft_detection.py</code>, and
     <code>python3 models/outage_forecasting.py</code> (in that order — outage forecasting depends on the failure model's output).
   </footer>
+
+  <script>
+    // All three panels render normally above (so Plotly measures real,
+    // visible containers) - only after that do we hide two of them.
+    // Switching later just toggles display and asks Plotly to re-measure,
+    // it doesn't re-render from scratch.
+    (function () {
+      var buttons = document.querySelectorAll(".tab-btn");
+      var panels = document.querySelectorAll("section.panel");
+
+      function showPanel(slug) {
+        panels.forEach(function (p) {
+          p.style.display = p.dataset.panel === slug ? "" : "none";
+        });
+        buttons.forEach(function (b) {
+          b.classList.toggle("active", b.dataset.panel === slug);
+        });
+        var shown = document.querySelector('section.panel[data-panel="' + slug + '"]');
+        var plot = shown && shown.querySelector(".js-plotly-plot");
+        if (plot && window.Plotly) {
+          Plotly.Plots.resize(plot);
+        }
+      }
+
+      buttons.forEach(function (b) {
+        b.addEventListener("click", function () {
+          showPanel(b.dataset.panel);
+        });
+      });
+
+      showPanel(buttons[0].dataset.panel);
+    })();
+  </script>
 </body>
 </html>

@@ -54,7 +54,7 @@ def tier_chart(counts, tier_order, entity_label):
     return fig.to_html(full_html=False, include_plotlyjs=False, config={"displayModeBar": False})
 
 
-def build_panel(csv_path, id_col, score_col, score_label, tier_col, flag_col, tier_order, entity_label):
+def build_panel(csv_path, id_col, score_col, score_label, tier_col, flag_col, tier_order, entity_label, slug):
     df = pd.read_csv(csv_path)
     counts = df[tier_col].value_counts().reindex(tier_order, fill_value=0)
 
@@ -65,6 +65,7 @@ def build_panel(csv_path, id_col, score_col, score_label, tier_col, flag_col, ti
     ]
 
     return {
+        "slug": slug,
         "entity_label": entity_label,
         "total": len(df),
         "flagged": int(df[flag_col].sum()),
@@ -89,6 +90,7 @@ def index():
         flag_col="alert_flag",
         tier_order=["low", "moderate", "elevated", "critical"],
         entity_label="transformers",
+        slug="transformer",
     )
     meter = build_panel(
         DATA / "meter_theft_scores.csv",
@@ -97,8 +99,9 @@ def index():
         score_label="Anomaly score",
         tier_col="priority_tier",
         flag_col="investigation_flag",
-        tier_order=["low", "moderate", "high", "urgent"],
+        tier_order=["low", "moderate", "elevated", "critical"],
         entity_label="meters",
+        slug="meter",
     )
     feeder = build_panel(
         DATA / "feeder_outage_scores.csv",
@@ -109,6 +112,7 @@ def index():
         flag_col="alert_flag",
         tier_order=["low", "moderate", "elevated", "critical"],
         entity_label="feeders",
+        slug="feeder",
     )
     return render_template("index.html", transformer=transformer, meter=meter, feeder=feeder)
 

@@ -61,9 +61,13 @@ def score_all_meters(df, anomaly_score_0_100, flagged):
     result = df[["meter_id"]].copy()
     result["anomaly_score"] = anomaly_score_0_100.round(1)
     result["investigation_flag"] = flagged.astype(int)
+    # Same four-level severity scale as the other two models (low/moderate/
+    # elevated/critical) - the labels used to differ ("urgent" instead of
+    # "critical") purely because this script was written independently of
+    # failure_prediction.py, not because it means anything different.
     result["priority_tier"] = pd.cut(
         result["anomaly_score"], bins=[-0.1, 40, 65, 85, 100],
-        labels=["low", "moderate", "high", "urgent"]
+        labels=["low", "moderate", "elevated", "critical"]
     )
     return result.sort_values("anomaly_score", ascending=False)
 
