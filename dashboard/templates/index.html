@@ -89,6 +89,12 @@
       <button type="button" id="chat-close" aria-label="Close">&times;</button>
     </div>
     <div class="chat-log" id="chat-log"></div>
+    <div class="chat-suggestions" id="chat-suggestions">
+      <button type="button" class="chat-chip">How many transformers are critical?</button>
+      <button type="button" class="chat-chip">Which meters are flagged?</button>
+      <button type="button" class="chat-chip">How many feeders are critical?</button>
+      <button type="button" class="chat-chip">Average outage risk score for feeders</button>
+    </div>
     <form id="chat-form">
       <input type="text" id="chat-input" placeholder="e.g. how many feeders are critical?" autocomplete="off">
       <button type="submit">Send</button>
@@ -152,12 +158,24 @@
         input.focus();
       }
 
-      toggle.addEventListener("click", openChat);
-      closeBtn.addEventListener("click", function () { panel.hidden = true; });
+      function closeChat() {
+        panel.hidden = true;
+      }
 
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        var message = input.value.trim();
+      // The toggle button opens the panel if closed, closes it if already
+      // open - a real toggle, not open-only (clicking it a second time used
+      // to do nothing, which looked like a broken button).
+      toggle.addEventListener("click", function () {
+        if (panel.hidden) {
+          openChat();
+        } else {
+          closeChat();
+        }
+      });
+      closeBtn.addEventListener("click", closeChat);
+
+      function sendMessage(message) {
+        message = message.trim();
         if (!message) return;
         addMessage(message, "user");
         input.value = "";
@@ -169,6 +187,20 @@
           .then(function (r) { return r.json(); })
           .then(function (data) { addMessage(data.reply, "bot"); })
           .catch(function () { addMessage("Sorry, something went wrong reaching the server.", "bot"); });
+      }
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        sendMessage(input.value);
+      });
+
+      // Suggested-question chips: click to send immediately, no typing
+      // needed - built for live demos where retyping a question wastes
+      // time or risks a typo hitting the fallback response.
+      document.querySelectorAll(".chat-chip").forEach(function (chip) {
+        chip.addEventListener("click", function () {
+          sendMessage(chip.textContent);
+        });
       });
     })();
   </script>
