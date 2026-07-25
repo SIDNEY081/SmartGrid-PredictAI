@@ -8,8 +8,9 @@ electricity theft detection platform.
 ```
 SmartGrid-PredictAI/
   data/
-    transformer_data.csv           # sample transformer readings + failure_within_1yr label
-    meter_data.csv                 # sample smart-meter readings + is_theft label
+    generate_data.py               # builds the synthetic transformer/meter datasets below
+    transformer_data.csv           # 800 transformers, ~17% failure_within_1yr rate
+    meter_data.csv                 # 3,000 meters, ~11% is_theft rate
     transformer_failure_scores.csv # notebook output: failure_score + tier per transformer
     meter_anomaly_scores.csv       # notebook output: anomaly_score + tier per meter
     transformer_risk_scores.csv    # script output: risk_score + tier per transformer
@@ -27,12 +28,20 @@ SmartGrid-PredictAI/
 
 Both pipelines are implemented twice: once as notebooks (`notebooks/`) and
 once as standalone scripts (`models/*.py`). They use the same features and
-model families but are independent implementations — evaluated in-sample
-against the small demo CSVs in `data/`, since there isn't enough data yet for
-a meaningful held-out test split. They intentionally write to **different**
-output files (`transformer_failure_scores.csv`/`meter_anomaly_scores.csv` for
-the notebooks vs. `transformer_risk_scores.csv`/`meter_theft_scores.csv` for
-the scripts) so running one doesn't clobber the other's results.
+model families but are independent implementations, and they write to
+**different** output files (`transformer_failure_scores.csv`/
+`meter_anomaly_scores.csv` for the notebooks vs. `transformer_risk_scores.csv`/
+`meter_theft_scores.csv` for the scripts) so running one doesn't clobber the
+other's results.
+
+**Evaluation methodology differs, and it matters:** `models/failure_prediction.py`
+evaluates on a held-out test split (ROC-AUC ≈ 0.77 on the current synthetic
+data). `notebooks/transformer_failure_model.ipynb` evaluates in-sample (trains
+and scores the same rows), which lets the Random Forest memorize the data and
+report a misleading ROC-AUC of 1.0. Trust the script's number, not the
+notebook's, for the failure model. (The theft/anomaly side doesn't have this
+problem — Isolation Forest is unsupervised and both implementations report a
+consistent ROC-AUC ≈ 0.98 against the synthetic `is_theft` labels.)
 
 ## Why these model choices
 
@@ -53,6 +62,12 @@ declared — a classic real-world signature of bypass or tampering.
 
 ## How to run
 
+Regenerate the synthetic data (run from the repo root):
+
+```bash
+python3 data/generate_data.py   # -> data/transformer_data.csv, data/meter_data.csv
+```
+
 Notebooks — open and run all cells in:
 
 ```bash
@@ -72,9 +87,12 @@ python3 models/theft_detection.py      # trains + scores -> data/meter_theft_sco
 
 ## Next steps
 
-1. Replace the small sample CSVs in `data/` with larger synthetic (or real)
-   datasets, and reinstate a proper held-out train/test split in
-   `models/failure_prediction.py` once there's enough data for it.
-2. Add a feedback loop: investigation outcomes (confirmed theft / false
+1. Give `notebooks/transformer_failure_model.ipynb` a held-out train/test
+   split (matching `models/failure_prediction.py`) so its reported ROC-AUC
+   stops being inflated by in-sample evaluation.
+2. Replace the synthetic CSVs in `data/` with real Eskom data once available,
+   matching the same column schema (or update `generate_data.py` /
+   `FEATURES` in the models if the real schema differs).
+3. Add a feedback loop: investigation outcomes (confirmed theft / false
    positive, confirmed failure / false alarm) should flow back in to improve
    precision over time.

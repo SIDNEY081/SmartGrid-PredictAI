@@ -8,6 +8,7 @@ transformer will fail within the next 30 days.
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score, precision_recall_curve, classification_report, average_precision_score
 import joblib
 
@@ -22,33 +23,37 @@ def load_data(path="data/transformer_data.csv"):
     return pd.read_csv(path)
 
 
-def train_model(df, model_type="gradient_boosting"):
-    # NOTE: the sample dataset in data/transformer_data.csv is a handful of
-    # rows, too small for a held-out test split to contain both classes.
-    # Train and evaluate in-sample here (matching notebooks/transformer_failure_model.ipynb);
-    # switch to a train/test split once a production-sized dataset is available.
-    X, y = df[FEATURES], df[TARGET]
-
+def build_model(model_type):
     if model_type == "gradient_boosting":
-        model = GradientBoostingClassifier(n_estimators=200, max_depth=3, learning_rate=0.08, subsample=0.8, random_state=42)
-    else:
-        model = RandomForestClassifier(n_estimators=300, max_depth=8, min_samples_leaf=5, class_weight="balanced", random_state=42, n_jobs=-1)
+        return GradientBoostingClassifier(n_estimators=200, max_depth=3, learning_rate=0.08, subsample=0.8, random_state=42)
+    return RandomForestClassifier(n_estimators=300, max_depth=8, min_samples_leaf=5, class_weight="balanced", random_state=42, n_jobs=-1)
 
-    model.fit(X, y)
 
-    y_proba = model.predict_proba(X)[:, 1]
-    auc = roc_auc_score(y, y_proba)
-    ap = average_precision_score(y, y_proba)
-    print(f"ROC-AUC: {auc:.3f}, Average Precision: {ap:.3f}")
+def train_model(df, model_type="gradient_boosting"):
+    X, y = df[FEATURES], df[TARGET]
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
-    precisions, recalls, thresholds = precision_recall_curve(y, y_proba)
+    eval_model = build_model(model_type)
+    eval_model.fit(X_train, y_train)
+
+    y_proba = eval_model.predict_proba(X_test)[:, 1]
+    auc = roc_auc_score(y_test, y_proba)
+    ap = average_precision_score(y_test, y_proba)
+    print(f"Held-out ROC-AUC: {auc:.3f}, Average Precision: {ap:.3f}")
+
+    precisions, recalls, thresholds = precision_recall_curve(y_test, y_proba)
     target_recall = 0.85
     idx = np.argmin(np.abs(recalls[:-1] - target_recall))
     chosen_threshold = thresholds[idx]
     print(f"Suggested threshold for ~85% recall: {chosen_threshold:.3f}, Precision: {precisions[idx]:.3f}")
 
     y_pred = (y_proba >= chosen_threshold).astype(int)
-    print(classification_report(y, y_pred, target_names=["healthy", "failure_risk"]))
+    print(classification_report(y_test, y_pred, target_names=["healthy", "failure_risk"]))
+
+    # Refit on the full dataset for deployment scoring, keeping the
+    # threshold chosen from the held-out evaluation above.
+    model = build_model(model_type)
+    model.fit(X, y)
 
     return model, chosen_threshold
 
