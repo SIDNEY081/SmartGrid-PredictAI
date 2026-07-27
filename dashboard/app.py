@@ -70,8 +70,14 @@ def build_panel(csv_path, id_col, score_col, score_label, tier_col, flag_col, ti
     counts = df[tier_col].value_counts().reindex(tier_order, fill_value=0)
 
     top = df.sort_values(score_col, ascending=False).head(15)
+    has_reasons = "top_reasons" in df.columns
     top_rows = [
-        {"id": row[id_col], "score": row[score_col], "tier": row[tier_col]}
+        {
+            "id": row[id_col],
+            "score": row[score_col],
+            "tier": row[tier_col],
+            "reasons": row["top_reasons"] if has_reasons else None,
+        }
         for _, row in top.iterrows()
     ]
 
@@ -86,6 +92,7 @@ def build_panel(csv_path, id_col, score_col, score_label, tier_col, flag_col, ti
         "score_label": score_label,
         "chart_html": tier_chart(counts, tier_order, entity_label),
         "top_rows": top_rows,
+        "has_reasons": has_reasons,
         "tier_color_map": dict(zip(tier_order, STATUS_COLORS)),
     }
 

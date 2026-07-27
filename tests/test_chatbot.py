@@ -49,3 +49,30 @@ def test_unrecognized_question_returns_help():
 
 def test_empty_message_returns_help():
     assert chatbot.answer("", DATA) == chatbot.HELP_TEXT
+
+
+def test_why_id_query_surfaces_reasons():
+    df = pd.read_csv(DATA / "transformer_risk_scores.csv")
+    row = df.iloc[0]
+    reply = chatbot.answer(f"why is {row['transformer_id']} high risk?", DATA)
+    assert "Main reasons" in reply
+    assert row["top_reasons"] in reply
+
+
+def test_why_aggregate_query_returns_common_reasons():
+    df = pd.read_csv(DATA / "feeder_outage_scores.csv")
+    critical = df[df["risk_tier"] == "critical"]
+    reply = chatbot.answer("why are feeders critical?", DATA)
+    assert str(len(critical)) in reply
+    assert "Most common reasons" in reply
+
+
+def test_top_n_query_respects_requested_count():
+    reply = chatbot.answer("top 3 riskiest transformers", DATA)
+    assert "top 3" in reply.lower()
+    assert len(reply.split(":")[-1].split(",")) == 3
+
+
+def test_greeting_returns_help():
+    reply = chatbot.answer("hello", DATA)
+    assert "transformers, meters, and feeders" in reply

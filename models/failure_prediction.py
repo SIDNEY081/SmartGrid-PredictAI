@@ -9,8 +9,13 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import roc_auc_score, precision_recall_curve, classification_report, average_precision_score
+from sklearn.metrics import (
+    roc_auc_score, precision_recall_curve, classification_report,
+    average_precision_score, confusion_matrix, accuracy_score,
+)
 import joblib
+
+import explain
 
 FEATURES = [
     "age_years", "load_factor", "maintenance_score",
@@ -59,16 +64,23 @@ def train_model(df, model_type="gradient_boosting"):
     print(f"[diagnostic] threshold for ~85% recall: {chosen_threshold:.3f}, Precision: {precisions[idx]:.3f}")
 
     y_pred = (y_proba >= chosen_threshold).astype(int)
+    print(f"Accuracy: {accuracy_score(y_test, y_pred):.3f}")
     print(classification_report(y_test, y_pred, target_names=["healthy", "failure_risk"]))
+    cm = confusion_matrix(y_test, y_pred)
+    print(f"Confusion matrix [[TN FP] [FN TP]] (rows=actual, cols=predicted):\n{cm}")
 
     # Refit on the full dataset for deployment scoring.
     model = build_model(model_type)
     model.fit(X, y)
 
+    importance = explain.global_importance(model, FEATURES)
+    print("Global feature importance:")
+    print(importance.to_string(index=False))
+
     return model, chosen_threshold
 
 
-def score_all_transformers(model, df, capacity_fraction=CAPACITY_FRACTION):
+def score_all_transformers(model, df, capacity_fraction=CAPACITY_FRACTION, explain_predictions=True):
     proba = model.predict_proba(df[FEATURES])[:, 1]
     id_cols = ["transformer_id", "feeder_id"] if "feeder_id" in df.columns else ["transformer_id"]
     result = df[id_cols].copy()
@@ -82,6 +94,13 @@ def score_all_transformers(model, df, capacity_fraction=CAPACITY_FRACTION):
     # as a work list).
     cutoff = result["risk_score"].quantile(1 - capacity_fraction)
     result["alert_flag"] = (result["risk_score"] >= cutoff).astype(int)
+
+    if explain_predictions:
+        contributions, _ = explain.explain_batch(model, df[FEATURES], FEATURES)
+        result["top_reasons"] = [
+            explain.describe_reasons(explain.top_reasons(contributions.loc[i]))
+            for i in df.index
+        ]
 
     return result.sort_values("risk_score", ascending=False)
 

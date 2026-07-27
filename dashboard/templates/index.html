@@ -69,6 +69,7 @@
                 <th>ID</th>
                 <th>{{ panel.score_label }}</th>
                 <th>Tier</th>
+                {% if panel.has_reasons %}<th>Why</th>{% endif %}
               </tr>
             </thead>
             <tbody>
@@ -82,6 +83,7 @@
                     {{ row.tier | capitalize }}
                   </span>
                 </td>
+                {% if panel.has_reasons %}<td class="reason-cell">{{ row.reasons }}</td>{% endif %}
               </tr>
               {% endfor %}
             </tbody>
@@ -103,17 +105,20 @@
   <div id="chat-panel" hidden>
     <div class="chat-header">
       <span>Ask about the data</span>
-      <button type="button" id="chat-close" aria-label="Close">&times;</button>
+      <div class="chat-header-actions">
+        <button type="button" id="chat-clear" aria-label="Clear conversation" title="Clear conversation">Clear</button>
+        <button type="button" id="chat-close" aria-label="Close">&times;</button>
+      </div>
     </div>
     <div class="chat-log" id="chat-log"></div>
     <div class="chat-suggestions" id="chat-suggestions">
       <button type="button" class="chat-chip">How many transformers are critical?</button>
+      <button type="button" class="chat-chip">Why are transformers critical?</button>
       <button type="button" class="chat-chip">Which meters are flagged?</button>
-      <button type="button" class="chat-chip">How many feeders are critical?</button>
-      <button type="button" class="chat-chip">Average outage risk score for feeders</button>
+      <button type="button" class="chat-chip">Top 5 riskiest feeders</button>
     </div>
     <form id="chat-form">
-      <input type="text" id="chat-input" placeholder="e.g. how many feeders are critical?" autocomplete="off">
+      <input type="text" id="chat-input" placeholder="e.g. why is T0208 high risk?" autocomplete="off">
       <button type="submit">Send</button>
     </form>
   </div>
@@ -166,6 +171,7 @@
       var toggle = document.getElementById("chat-toggle");
       var panel = document.getElementById("chat-panel");
       var closeBtn = document.getElementById("chat-close");
+      var clearBtn = document.getElementById("chat-clear");
       var log = document.getElementById("chat-log");
       var form = document.getElementById("chat-form");
       var input = document.getElementById("chat-input");
@@ -178,29 +184,47 @@
         log.scrollTop = log.scrollHeight;
       }
 
+      function greet() {
+        addMessage("Ask me things like “how many transformers are critical?”, “why is T0208 high risk?”, or “top 5 riskiest feeders”.", "bot");
+      }
+
       function openChat() {
         panel.hidden = false;
         if (log.children.length === 0) {
-          addMessage("Ask me things like “how many transformers are critical?” or “what's the risk score for T0208?”", "bot");
+          greet();
         }
         input.focus();
       }
 
+      // Always reachable regardless of what else happens on the page: no
+      // reliance on event bubbling order or on a second listener elsewhere
+      // to actually hide the panel.
       function closeChat() {
         panel.hidden = true;
       }
 
       // The toggle button opens the panel if closed, closes it if already
       // open - a real toggle, not open-only (clicking it a second time used
-      // to do nothing, which looked like a broken button).
-      toggle.addEventListener("click", function () {
+      // to do nothing, which looked like a broken button). stopPropagation
+      // keeps this click from also reaching the document-level
+      // click-outside-closes listener below in the same event.
+      toggle.addEventListener("click", function (e) {
+        e.stopPropagation();
         if (panel.hidden) {
           openChat();
         } else {
           closeChat();
         }
       });
-      closeBtn.addEventListener("click", closeChat);
+      closeBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        closeChat();
+      });
+      clearBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        log.innerHTML = "";
+        greet();
+      });
 
       // Belt-and-braces: Escape key and clicking anywhere outside the
       // panel also close it, in case the small (x) target is ever hard to

@@ -24,9 +24,11 @@ SmartGrid-PredictAI/
     failure_prediction.py          # script version of the failure model
     theft_detection.py             # script version of the theft model
     outage_forecasting.py          # feeder outage model (script only, no notebook - see below)
+    explain.py                     # shared SHAP / feature-importance helpers used by all three
   dashboard/
     app.py                         # Flask app serving the planner dashboard
     chatbot.py                     # rule-based Q&A over the score CSVs (no LLM)
+    streamlit_app.py               # interactive upload-CSV / Predict console (see below)
     templates/index.html
     static/style.css
   tests/                           # pytest smoke tests for the schema + pipelines
@@ -132,12 +134,30 @@ Run the scripts first (or at least once) so `transformer_risk_scores.csv`,
 dashboard just reads them, it doesn't train anything itself. It needs
 internet access once to load Plotly from a CDN.
 
-**Chat widget** ("Ask about the data", bottom-right of the dashboard) answers
-questions like "how many feeders are critical?" or "what's the risk score for
-T0208?" by keyword-matching the question onto a pandas filter over the same
-three score CSVs. It is **not** an LLM — no API key, no external network call,
-no cost, and no failure mode beyond the dashboard's own Flask server being up.
-See `dashboard/chatbot.py`.
+**Streamlit app** — a second, more visual console covering all three models
+(the Flask dashboard above is the lighter-weight one):
+
+```bash
+streamlit run dashboard/streamlit_app.py   # -> http://localhost:8501
+```
+
+It auto-loads and scores `data/transformer_data.csv`, `data/meter_data.csv`,
+and `data/feeder_data.csv` on open — no CSV upload step. It prefers the
+already-trained `models/*.joblib` and pre-scored `data/*_scores.csv` files
+(run the scripts above first for instant load); if those don't exist yet it
+trains on the spot and writes them, so it also works from a clean checkout.
+A "Refresh predictions" button in the sidebar re-reads everything (use it
+after re-running a script). Each of the three tabs (Transformer Failure /
+Theft Detection / Feeder Outage) shows a severity-tier breakdown, the top-15
+riskiest rows with their reason text, a global feature-importance chart, and
+a SHAP "why" chart for any single row you pick from the top 30.
+
+**Chat** — both apps have the same rule-based (no LLM) Q&A over the score
+CSVs: a floating widget in the Flask dashboard, a sidebar panel in the
+Streamlit app. Answers things like "how many feeders are critical?" or
+"what's the risk score for T0208?" by keyword-matching the question onto a
+pandas filter — no API key, no external network call, no cost. See
+`dashboard/chatbot.py` (shared by both apps).
 
 **Power BI / Tableau**: `transformer_risk_scores.csv`, `meter_theft_scores.csv`,
 and `feeder_outage_scores.csv` are meant to be imported directly (Get Data ->
@@ -146,6 +166,26 @@ Text/CSV) - no server needed. Each has a numeric `*_tier_order` column
 severity instead of alphabetically. `transformer_risk_scores.csv` and
 `feeder_outage_scores.csv` share a `feeder_id` column if you want to relate
 them in the data model.
+
+## Explainable AI
+
+All three models print held-out accuracy, precision/recall/F1
+(`classification_report`), and a confusion matrix when trained
+(`python3 models/failure_prediction.py`, etc.), plus a global feature
+importance ranking. `models/explain.py` provides the shared logic:
+
+- Uses `shap.TreeExplainer` when `shap` is installed (exact for tree
+  ensembles, and it's the library all three models use — Random Forest,
+  Gradient Boosting, Isolation Forest). Every scored row in
+  `data/*_scores.csv` gets a `top_reasons` column, e.g. `"high age_years,
+  low oil_quality_index, high load_factor"`.
+- Falls back to a z-score-weighted approximation if `shap` isn't installed,
+  so the pipelines and tests still run without it - clearly weaker (it
+  ignores feature interactions) but dependency-free.
+
+The Streamlit app (`dashboard/streamlit_app.py`) surfaces this
+interactively: a bar chart of global feature importance, and a per-row SHAP
+bar chart for any single transformer or meter you pick.
 
 ## Tests
 

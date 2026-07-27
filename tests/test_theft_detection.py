@@ -27,9 +27,9 @@ def test_pipeline_end_to_end():
     assert len(anomaly_scores) == len(df)
     assert len(flagged) == len(df)
 
-    scored = td.score_all_meters(df, anomaly_scores, flagged)
+    scored = td.score_all_meters(df, scaler, feature_cols, anomaly_scores, flagged, model=model)
     assert len(scored) == len(df)
-    assert {"meter_id", "anomaly_score", "investigation_flag", "priority_tier"} <= set(scored.columns)
+    assert {"meter_id", "anomaly_score", "investigation_flag", "priority_tier", "top_reasons"} <= set(scored.columns)
     assert scored["meter_id"].is_unique
 
 

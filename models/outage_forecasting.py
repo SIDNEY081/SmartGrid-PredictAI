@@ -14,8 +14,13 @@ failure_prediction.py first.
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import roc_auc_score, average_precision_score, classification_report
+from sklearn.metrics import (
+    roc_auc_score, average_precision_score, classification_report,
+    confusion_matrix, accuracy_score,
+)
 import joblib
+
+import explain
 
 FEATURES = [
     "feeder_age_years", "vegetation_encroachment_score", "protection_equipment_age",
@@ -72,16 +77,23 @@ def train_model(df):
     print(f"Held-out ROC-AUC: {auc:.3f}, Average Precision: {ap:.3f}")
 
     y_pred = (y_proba >= 0.5).astype(int)
+    print(f"Accuracy: {accuracy_score(y_test, y_pred):.3f}")
     print(classification_report(y_test, y_pred, target_names=["no_outage", "outage_risk"]))
+    cm = confusion_matrix(y_test, y_pred)
+    print(f"Confusion matrix [[TN FP] [FN TP]] (rows=actual, cols=predicted):\n{cm}")
 
     # Refit on the full dataset for deployment scoring.
     model = build_model()
     model.fit(X, y)
 
+    importance = explain.global_importance(model, FEATURES)
+    print("Global feature importance:")
+    print(importance.to_string(index=False))
+
     return model
 
 
-def score_all_feeders(model, df, capacity_fraction=CAPACITY_FRACTION):
+def score_all_feeders(model, df, capacity_fraction=CAPACITY_FRACTION, explain_predictions=True):
     proba = model.predict_proba(df[FEATURES])[:, 1]
     result = df[["feeder_id"]].copy()
     result["outage_risk_score"] = (proba * 100).round(1)
@@ -93,6 +105,13 @@ def score_all_feeders(model, df, capacity_fraction=CAPACITY_FRACTION):
 
     cutoff = result["outage_risk_score"].quantile(1 - capacity_fraction)
     result["alert_flag"] = (result["outage_risk_score"] >= cutoff).astype(int)
+
+    if explain_predictions:
+        contributions, _ = explain.explain_batch(model, df[FEATURES], FEATURES)
+        result["top_reasons"] = [
+            explain.describe_reasons(explain.top_reasons(contributions.loc[i]))
+            for i in df.index
+        ]
 
     return result.sort_values("outage_risk_score", ascending=False)
 

@@ -10,9 +10,13 @@ joblib
 
 # Web framework
 flask
+streamlit
 
 # Visualization
 plotly
+
+# Explainable AI
+shap
 
 # Testing
 pytest

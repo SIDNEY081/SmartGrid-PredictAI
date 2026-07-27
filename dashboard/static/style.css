@@ -188,7 +188,7 @@ section.panel[data-panel="feeder"] .stat-tile:hover { border-color: #1baf7a; }
 
 .content-grid {
   display: grid;
-  grid-template-columns: 1.1fr 1fr;
+  grid-template-columns: 0.9fr 1.3fr;
   gap: 24px;
   align-items: start;
 }
@@ -247,6 +247,14 @@ table.score-table tbody tr:hover {
   flex-shrink: 0;
 }
 
+.reason-cell {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-style: italic;
+  font-variant-numeric: normal;
+  max-width: 220px;
+}
+
 footer {
   padding: 8px 32px 32px;
   color: var(--text-muted);
@@ -302,6 +310,12 @@ footer {
   border-bottom: 1px solid var(--gridline);
 }
 
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .chat-header button {
   font: inherit;
   font-size: 20px;
@@ -322,6 +336,13 @@ footer {
 .chat-header button:hover {
   background: var(--page-plane);
   color: var(--text-primary);
+}
+
+#chat-clear {
+  width: auto;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 10px;
 }
 
 .chat-log {
