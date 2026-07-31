@@ -176,10 +176,30 @@
       var form = document.getElementById("chat-form");
       var input = document.getElementById("chat-input");
 
+      // Narrowly linkifies only a self-generated /reports/<name>.pdf path
+      // (from the "generate report" chat intent) into a clickable link.
+      // Everything else stays plain text via createTextNode/textContent -
+      // never innerHTML - so this can't become an HTML/script injection
+      // point no matter what the reply text contains.
+      var REPORT_LINK_PATTERN = /\/reports\/[\w.-]+\.pdf/g;
+
       function addMessage(text, who) {
         var row = document.createElement("div");
         row.className = "chat-msg chat-msg-" + who;
-        row.textContent = text;
+        var lastIndex = 0;
+        var match;
+        REPORT_LINK_PATTERN.lastIndex = 0;
+        while ((match = REPORT_LINK_PATTERN.exec(text)) !== null) {
+          row.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+          var link = document.createElement("a");
+          link.href = match[0];
+          link.textContent = match[0];
+          link.target = "_blank";
+          link.rel = "noopener";
+          row.appendChild(link);
+          lastIndex = match.index + match[0].length;
+        }
+        row.appendChild(document.createTextNode(text.slice(lastIndex)));
         log.appendChild(row);
         log.scrollTop = log.scrollHeight;
       }
@@ -224,6 +244,7 @@
         e.stopPropagation();
         log.innerHTML = "";
         greet();
+        fetch("/api/chat/reset", { method: "POST" }).catch(function () {});
       });
 
       // Belt-and-braces: Escape key and clicking anywhere outside the

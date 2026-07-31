@@ -32,6 +32,25 @@ CAPACITY_FRACTION = 0.15
 # severity instead of alphabetically (Critical, Elevated, Low, Moderate).
 TIER_ORDER = {"low": 1, "moderate": 2, "elevated": 3, "critical": 4}
 
+# Rule-of-thumb typical service life for a distribution transformer, used
+# only to give remaining_useful_life_years a scale - a heuristic estimate,
+# not a real asset-management survival-curve output.
+TYPICAL_SERVICE_LIFE_YEARS = 40
+
+# Maps the single strongest reason behind a risk score to a plain-language
+# failure mode. Deterministic lookup from the same top-reason feature name
+# already computed for top_reasons - not a second, independently-fabricated
+# signal.
+FAILURE_MODE_MAP = {
+    "temperature_rise_c": "Overheating",
+    "oil_quality_index": "Oil degradation/contamination",
+    "load_factor": "Overloading",
+    "maintenance_score": "Deferred maintenance",
+    "age_years": "End-of-life wear",
+}
+
+TIER_TO_MAINTENANCE_INTERVAL_DAYS = {"critical": 7, "elevated": 30, "moderate": 90, "low": 180}
+
 
 def load_data(path="data/transformer_data.csv"):
     return pd.read_csv(path)
@@ -95,11 +114,34 @@ def score_all_transformers(model, df, capacity_fraction=CAPACITY_FRACTION, expla
     cutoff = result["risk_score"].quantile(1 - capacity_fraction)
     result["alert_flag"] = (result["risk_score"] >= cutoff).astype(int)
 
+    # health_score is just the inverse framing of risk_score. confidence_pct
+    # is a heuristic proxy - distance from the 50% decision boundary - not a
+    # real model-uncertainty estimate (that would need e.g. per-tree vote
+    # variance). remaining_useful_life_years scales TYPICAL_SERVICE_LIFE_YEARS
+    # down by health_score, so there's one "how healthy is this unit"
+    # fraction reused everywhere rather than two different risk-to-fraction
+    # conversions.
+    result["health_score"] = (100 - result["risk_score"]).round(1).clip(0, 100)
+    result["confidence_pct"] = (result["risk_score"] - 50).abs().mul(2).clip(upper=100).round(1)
+    result["remaining_useful_life_years"] = (
+        (TYPICAL_SERVICE_LIFE_YEARS - df["age_years"]).clip(lower=0) * (result["health_score"] / 100)
+    ).round(1)
+    if "last_serviced_date" in df.columns:
+        # .astype(int): risk_tier is Categorical, and .map() on a Categorical
+        # Series keeps that dtype - pd.to_timedelta chokes on a Categorical
+        # input, so force a plain int dtype first.
+        interval_days = result["risk_tier"].map(TIER_TO_MAINTENANCE_INTERVAL_DAYS).astype(int)
+        next_date = pd.to_datetime(df["last_serviced_date"]) + pd.to_timedelta(interval_days, unit="D")
+        result["next_maintenance_date"] = next_date.dt.strftime("%Y-%m-%d")
+
     if explain_predictions:
         contributions, _ = explain.explain_batch(model, df[FEATURES], FEATURES)
+        reasons_by_row = {i: explain.top_reasons(contributions.loc[i]) for i in df.index}
         result["top_reasons"] = [
-            explain.describe_reasons(explain.top_reasons(contributions.loc[i]))
-            for i in df.index
+            explain.describe_reasons(reasons_by_row[i]) for i in df.index
+        ]
+        result["predicted_failure_mode"] = [
+            FAILURE_MODE_MAP.get(reasons_by_row[i][0][0], "Unspecified") for i in df.index
         ]
 
     return result.sort_values("risk_score", ascending=False)

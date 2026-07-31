@@ -27,8 +27,25 @@ def test_pipeline_end_to_end():
 
     scored = fp.score_all_transformers(model, df)
     assert len(scored) == len(df)
-    assert {"transformer_id", "risk_score", "risk_tier", "alert_flag"} <= set(scored.columns)
+    assert {
+        "transformer_id", "risk_score", "risk_tier", "alert_flag",
+        "health_score", "confidence_pct", "predicted_failure_mode",
+        "remaining_useful_life_years", "next_maintenance_date",
+    } <= set(scored.columns)
     assert scored["transformer_id"].is_unique
+
+
+def test_health_confidence_rul_are_sane():
+    df = fp.load_data()
+    model, _ = fp.train_model(df)
+    scored = fp.score_all_transformers(model, df)
+
+    assert (scored["health_score"] == (100 - scored["risk_score"]).round(1)).all()
+    assert scored["confidence_pct"].between(0, 100).all()
+    assert (scored["remaining_useful_life_years"] >= 0).all()
+    assert scored["predicted_failure_mode"].isin(
+        list(fp.FAILURE_MODE_MAP.values()) + ["Unspecified"]
+    ).all()
 
 
 def test_alert_flag_matches_capacity_fraction():

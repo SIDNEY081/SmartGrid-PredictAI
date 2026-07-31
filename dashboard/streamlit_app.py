@@ -302,8 +302,10 @@ with st.sidebar:
     st.caption("Rule-based Q&A over the score files - no LLM, no external calls. Try “why is T0208 high risk?” or “top 5 riskiest feeders”.")
 
     st.session_state.setdefault("chat_history", [])
+    st.session_state.setdefault("chat_context", {})
     if clear_col.button("Clear", use_container_width=True):
         st.session_state.chat_history = []
+        st.session_state.chat_context = {}
 
     pending_question = st.chat_input("e.g. why is T0208 high risk?")
 
@@ -320,7 +322,7 @@ with st.sidebar:
 
     if pending_question:
         st.session_state.chat_history.append({"role": "user", "content": pending_question})
-        reply = chatbot.answer(pending_question, ROOT / "data")
+        reply = chatbot.answer(pending_question, ROOT / "data", context=st.session_state.chat_context)
         st.session_state.chat_history.append({"role": "assistant", "content": reply})
 
     if not st.session_state.chat_history:

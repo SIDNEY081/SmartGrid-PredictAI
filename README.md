@@ -10,11 +10,16 @@ SmartGrid-PredictAI/
   data/
     generate_data.py               # builds the synthetic transformer/meter/feeder datasets below
     transformer_data.csv           # 3,000 transformers (each on a feeder), ~19% failure_within_1yr rate
+                                    #   + asset metadata: location, capacity_kva, installation_year,
+                                    #     previous_failures, last_serviced_date, last_oil_replacement_date
+    transformer_history.csv        # 12 months of oil_quality_index/temperature_rise_c/load_factor per transformer
     meter_data.csv                 # 10,000 meters, ~10% is_theft rate
     feeder_data.csv                # 1,500 feeders, ~13% outage_within_7_days rate
     transformer_failure_scores.csv # notebook output: failure_score + tier per transformer
     meter_anomaly_scores.csv       # notebook output: anomaly_score + tier per meter
     transformer_risk_scores.csv    # script output: risk_score + tier per transformer
+                                    #   + health_score, confidence_pct, predicted_failure_mode,
+                                    #     remaining_useful_life_years, next_maintenance_date
     meter_theft_scores.csv         # script output: anomaly_score + tier per meter
     feeder_outage_scores.csv       # script output: outage_risk_score + tier per feeder
   notebooks/
@@ -28,9 +33,12 @@ SmartGrid-PredictAI/
   dashboard/
     app.py                         # Flask app serving the planner dashboard
     chatbot.py                     # rule-based Q&A over the score CSVs (no LLM)
+    knowledge_base.py              # hand-written fault-symptom/glossary reference data for the chatbot
+    report.py                      # one-page PDF maintenance report per transformer (reportlab)
     streamlit_app.py               # interactive upload-CSV / Predict console (see below)
     templates/index.html
     static/style.css
+  reports/                         # generated PDF reports (gitignored - not synthetic source data)
   tests/                           # pytest smoke tests for the schema + pipelines
   requirements.txt
 ```
@@ -157,7 +165,8 @@ CSVs: a floating widget in the Flask dashboard, a sidebar panel in the
 Streamlit app. Answers things like "how many feeders are critical?" or
 "what's the risk score for T0208?" by keyword-matching the question onto a
 pandas filter — no API key, no external network call, no cost. See
-`dashboard/chatbot.py` (shared by both apps).
+`dashboard/chatbot.py` (shared by both apps), and "Chatbot capabilities"
+below for the full set of transformer-specific intents.
 
 **Power BI / Tableau**: `transformer_risk_scores.csv`, `meter_theft_scores.csv`,
 and `feeder_outage_scores.csv` are meant to be imported directly (Get Data ->
@@ -187,6 +196,50 @@ The Streamlit app (`dashboard/streamlit_app.py`) surfaces this
 interactively: a bar chart of global feature importance, and a per-row SHAP
 bar chart for any single transformer or meter you pick.
 
+## Chatbot capabilities
+
+Beyond the generic count/list/average/why questions above, `dashboard/chatbot.py`
+has transformer-specific intents (meters/feeders reply with an honest "not
+available yet" rather than nonsense, since none of this has an equivalent
+data model for them):
+
+- **`predict T0208`** — a one-shot summary: Failure Risk, Risk Level,
+  Predicted Failure (mode), Confidence, Recommendation.
+- **`health of T0208`** — Health Score, Status, Last Serviced, Last Oil
+  Replacement, Next Maintenance, Remaining Useful Life, Risk Trend.
+- **`recommend actions for T0208`** — the tier's ordered action list from
+  `dashboard/knowledge_base.py`.
+- **`maintenance history of T0208`** — last serviced/oil-replacement dates,
+  previous failure count, and the last 3 months of readings from
+  `data/transformer_history.csv`.
+- **`find T0208`** / **`search T0208`** / **`where is T0208`** — location,
+  capacity, installation year, current tier.
+- **`trend for T0208`** — per-feature direction (rising/falling/stable) from
+  a linear fit over `data/transformer_history.csv`'s 12 monthly readings.
+- **`compare T0208 and T0301`** — side-by-side risk/health/temperature/load.
+- **`which transformers are high-risk?`** — a two-tier alias for
+  elevated+critical, alongside the existing single-tier questions.
+- **`generate report for T0208`** — writes a one-page PDF via
+  `dashboard/report.py` (reportlab) to `reports/`; the Flask app serves it
+  at `/reports/<name>.pdf`.
+- No id needed: **`what is dissolved gas analysis?`** and similar glossary
+  terms, or a free-text symptom like **"transformer is making a loud humming
+  noise"**, both answered from the fixed reference dicts in
+  `dashboard/knowledge_base.py` — real engineering content, keyword-matched,
+  not a general-purpose fault-diagnosis system.
+
+Two of the new score fields are explicitly heuristics, not model-uncertainty
+or real asset-management outputs:
+
+- **`confidence_pct`** is just distance from the 50% decision boundary
+  (`abs(risk_score - 50) * 2`) — a proxy for "how far from a coin flip",
+  not a measure of the model's actual uncertainty (that would need e.g.
+  per-tree vote variance).
+- **`remaining_useful_life_years`** assumes a 40-year typical service life
+  for a distribution transformer, scaled down by `health_score` — a rule of
+  thumb, same spirit as `CAPACITY_FRACTION` below, not a survival-curve
+  estimate from real maintenance outcomes.
+
 ## Tests
 
 ```bash
@@ -199,7 +252,10 @@ in `models/*.py`, all three pipelines run end-to-end without errors, the
 failure/theft scripts' output filenames don't collide with the notebooks',
 and each capacity-based alert flag actually flags close to
 `CAPACITY_FRACTION` of the fleet. These tests would have caught every
-schema-drift bug found earlier in this project's history.
+schema-drift bug found earlier in this project's history. Also covers the
+chatbot's transformer-only intents (`tests/test_chatbot.py`), the
+`knowledge_base.py` reference dicts (`tests/test_knowledge_base.py`), and
+PDF report generation (`tests/test_report.py`).
 
 ## Next steps
 

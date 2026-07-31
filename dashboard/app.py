@@ -11,18 +11,24 @@ Run from anywhere:
 Then open http://127.0.0.1:5000
 """
 
+import os
 from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_from_directory, session
 
 import chatbot
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
+REPORTS = ROOT / "reports"
 
 app = Flask(__name__)
+# Only signs the session cookie holding chat follow-up context (last id/entity
+# asked about); regenerated per process, so restarting the app just resets
+# any open conversations rather than needing a stable stored secret.
+app.secret_key = os.urandom(24)
 
 # Status palette (good -> warning -> serious -> critical), fixed order,
 # never reused for anything else on the page.
@@ -138,8 +144,21 @@ def index():
 @app.route("/api/chat", methods=["POST"])
 def chat():
     message = (request.get_json(silent=True) or {}).get("message", "")
-    reply = chatbot.answer(message, DATA)
+    context = session.get("chat_context", {})
+    reply = chatbot.answer(message, DATA, context=context)
+    session["chat_context"] = context
     return jsonify({"reply": reply})
+
+
+@app.route("/api/chat/reset", methods=["POST"])
+def chat_reset():
+    session.pop("chat_context", None)
+    return jsonify({"ok": True})
+
+
+@app.route("/reports/<path:filename>")
+def reports(filename):
+    return send_from_directory(REPORTS, filename)
 
 
 if __name__ == "__main__":

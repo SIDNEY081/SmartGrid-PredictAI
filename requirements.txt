@@ -18,5 +18,8 @@ plotly
 # Explainable AI
 shap
 
+# PDF report generation (pure-Python, no system deps - Windows-friendly)
+reportlab
+
 # Testing
 pytest

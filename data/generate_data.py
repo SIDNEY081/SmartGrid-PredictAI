@@ -18,6 +18,16 @@ N_TRANSFORMERS = 3000
 N_METERS = 10000
 N_FEEDERS = 1500
 
+# Asset-metadata/maintenance-history constants. REFERENCE_DATE is pinned
+# rather than datetime.now() so regenerating this script in a later calendar
+# year doesn't silently drift installation_year/service dates - matches the
+# reproducibility goal of the fixed RANDOM_SEED.
+REFERENCE_YEAR = 2026
+REFERENCE_DATE = pd.Timestamp("2026-07-31")
+PROVINCES = ["Gauteng", "Western Cape", "KwaZulu-Natal", "Eastern Cape",
+             "Free State", "Limpopo", "Mpumalanga", "North West", "Northern Cape"]
+CAPACITY_KVA_OPTIONS = [50, 100, 200, 315, 500, 800, 1000, 1600, 2000]
+
 
 def generate_transformer_data(n=N_TRANSFORMERS, n_feeders=N_FEEDERS, seed=RANDOM_SEED):
     rng = np.random.default_rng(seed)
@@ -53,6 +63,30 @@ def generate_transformer_data(n=N_TRANSFORMERS, n_feeders=N_FEEDERS, seed=RANDOM
     prob_failure = 1 / (1 + np.exp(-risk))
     failure_within_1yr = rng.binomial(1, prob_failure)
 
+    # Asset metadata + maintenance history. New rng draws go here, strictly
+    # after every draw above, so the original 8 columns stay byte-identical
+    # for the same seed - inserting a draw earlier would shift the whole
+    # rng stream and silently change age_years/oil_quality_index/etc for
+    # existing rows.
+    location = rng.choice(PROVINCES, size=n)
+    capacity_kva = rng.choice(CAPACITY_KVA_OPTIONS, size=n)
+    installation_year = (REFERENCE_YEAR - age_years.round()).astype(int)
+
+    previous_failures_lam = np.clip(
+        0.15 + age_years / 35 * 1.5 + (1 - maintenance_score) * 1.0, 0.05, None
+    )
+    previous_failures = rng.poisson(previous_failures_lam)
+
+    days_since_service = np.clip(
+        rng.gamma(2.0, 60, size=n) * (1.6 - maintenance_score), 3, 730
+    ).astype(int)
+    last_serviced_date = REFERENCE_DATE - pd.to_timedelta(days_since_service, unit="D")
+
+    days_since_oil = np.clip(
+        rng.gamma(2.0, 150, size=n) * (1.6 - oil_quality_index), 14, 2000
+    ).astype(int)
+    last_oil_replacement_date = REFERENCE_DATE - pd.to_timedelta(days_since_oil, unit="D")
+
     df = pd.DataFrame({
         "transformer_id": [f"T{i:04d}" for i in range(1, n + 1)],
         "feeder_id": [f"F{f:03d}" for f in feeder_id],
@@ -62,6 +96,12 @@ def generate_transformer_data(n=N_TRANSFORMERS, n_feeders=N_FEEDERS, seed=RANDOM
         "oil_quality_index": oil_quality_index.round(3),
         "temperature_rise_c": temperature_rise_c.round(1),
         "failure_within_1yr": failure_within_1yr,
+        "location": location,
+        "capacity_kva": capacity_kva,
+        "installation_year": installation_year,
+        "previous_failures": previous_failures,
+        "last_serviced_date": last_serviced_date.strftime("%Y-%m-%d"),
+        "last_oil_replacement_date": last_oil_replacement_date.strftime("%Y-%m-%d"),
     })
     return df
 
@@ -178,14 +218,48 @@ def generate_feeder_data(transformer_df, n=N_FEEDERS, seed=RANDOM_SEED):
     return df
 
 
+def generate_transformer_history(transformer_df, n_months=12, seed=45):
+    """12 months of oil_quality_index/temperature_rise_c/load_factor per
+    transformer, drifting from a randomized starting point toward each
+    transformer's actual current value (+ noise) - a real generated time
+    series, so "is this trending up or down" questions have real numbers
+    behind them instead of invented wording."""
+    rng = np.random.default_rng(seed)
+    n = len(transformer_df)
+    months = np.arange(n_months)
+    frac = (months / (n_months - 1))[None, :]
+
+    def series(end_vals, start_noise_sd, drift_noise_sd, lo, hi):
+        end = end_vals.values[:, None]
+        start = np.clip(end + rng.normal(0, start_noise_sd, size=(n, 1)), lo, hi)
+        return np.clip(
+            start + (end - start) * frac + rng.normal(0, drift_noise_sd, size=(n, n_months)),
+            lo, hi,
+        )
+
+    oil = series(transformer_df["oil_quality_index"], 0.15, 0.02, 0, 1)
+    temp = series(transformer_df["temperature_rise_c"], 8, 1.5, 18, 95)
+    load = series(transformer_df["load_factor"], 0.12, 0.02, 0.1, 1.0)
+
+    return pd.DataFrame({
+        "transformer_id": np.repeat(transformer_df["transformer_id"].values, n_months),
+        "month_offset": np.tile(months, n),
+        "oil_quality_index": oil.round(3).ravel(),
+        "temperature_rise_c": temp.round(1).ravel(),
+        "load_factor": load.round(3).ravel(),
+    })
+
+
 if __name__ == "__main__":
     transformer_df = generate_transformer_data()
     meter_df = generate_meter_data()
     feeder_df = generate_feeder_data(transformer_df)
+    history_df = generate_transformer_history(transformer_df)
 
     transformer_df.to_csv("data/transformer_data.csv", index=False)
     meter_df.to_csv("data/meter_data.csv", index=False)
     feeder_df.to_csv("data/feeder_data.csv", index=False)
+    history_df.to_csv("data/transformer_history.csv", index=False)
 
     print(f"Saved data/transformer_data.csv -> {transformer_df.shape[0]} rows, "
           f"failure_within_1yr rate = {transformer_df['failure_within_1yr'].mean():.1%}")
@@ -193,3 +267,5 @@ if __name__ == "__main__":
           f"is_theft rate = {meter_df['is_theft'].mean():.1%}")
     print(f"Saved data/feeder_data.csv -> {feeder_df.shape[0]} rows, "
           f"outage_within_7_days rate = {feeder_df['outage_within_7_days'].mean():.1%}")
+    print(f"Saved data/transformer_history.csv -> {history_df.shape[0]} rows "
+          f"({transformer_df.shape[0]} transformers x 12 months)")
