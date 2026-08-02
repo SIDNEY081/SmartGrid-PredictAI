@@ -373,7 +373,11 @@ def transformer_report(transformer_id):
 
 @app.route("/reports/<path:filename>")
 def reports(filename):
-    return send_from_directory(REPORTS, filename)
+    # as_attachment=True: without it, send_from_directory serves the PDF
+    # inline (Content-Disposition: inline), so a browser with a built-in PDF
+    # viewer just opens it in the tab instead of downloading it - not what
+    # the "Download <file>.pdf" link/button in the AI Assistant card implies.
+    return send_from_directory(REPORTS, filename, as_attachment=True)
 
 
 if __name__ == "__main__":

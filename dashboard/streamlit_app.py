@@ -56,7 +56,7 @@ st.markdown(
     card below sets its own opaque surface color (#fcfcfb), so this never
     shows through data - it only fills the space around it. */
     [data-testid="stAppViewContainer"], .stApp {
-        background: linear-gradient(135deg, #eaf2fc 0%, #ffffff 38%, #ffffff 62%, #e3edfb 100%);
+        background: linear-gradient(135deg, #9dc4f2 0%, #dceafb 20%, #ffffff 46%, #ffffff 54%, #dceafb 80%, #9dc4f2 100%);
         background-attachment: fixed;
     }
     .sg-header {
@@ -67,7 +67,7 @@ st.markdown(
         content:""; position:absolute; top:-120%; right:-10%; width:42%; height:340%;
         background: linear-gradient(135deg, #2a78d6 0%, #5aa0e6 55%, rgba(90,160,230,0) 100%);
         clip-path: polygon(35% 0%, 100% 0%, 100% 100%, 0% 100%);
-        opacity:0.14; pointer-events:none; z-index:0;
+        opacity:0.26; pointer-events:none; z-index:0;
     }
     .sg-header > * { position:relative; z-index:1; }
     .sg-brand-mark {
