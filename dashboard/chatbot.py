@@ -151,6 +151,19 @@ def _find_all_ids(raw_text):
     return found
 
 
+def resolve_id(entity_key, num, data_dir):
+    """Public counterpart to the id lookup answer() does inline - given an
+    entity key and the numeric part of an id (e.g. ("transformer", 208)),
+    returns the real, zero-padded id string from the CSV (e.g. "T0208"), or
+    None if that number isn't in the data. Lets a caller that already has a
+    context dict (e.g. the Flask session) resolve context["last_id"] into a
+    display id without re-running answer()."""
+    df, cfg = _load(entity_key, data_dir)
+    id_nums = df[cfg["id_col"]].astype(str).str.extract(r"(\d+)$")[0].astype(int)
+    match = df[id_nums == num]
+    return None if match.empty else match.iloc[0][cfg["id_col"]]
+
+
 def _has_word(text, word):
     return re.search(rf"\b{word}\b", text) is not None
 

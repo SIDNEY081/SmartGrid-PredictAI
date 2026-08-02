@@ -28,6 +28,7 @@
   </header>
 
   <nav class="tab-nav">
+    <button type="button" class="tab-btn" data-panel="assistant">🤖&nbsp;AI Assistant</button>
     {% for panel in [transformer, meter, feeder] %}
     <button type="button" class="tab-btn" data-panel="{{ panel.slug }}">
       {{ entity_icon(panel.slug) }}{{ panel.entity_label | capitalize }}
@@ -36,6 +37,35 @@
   </nav>
 
   <main>
+    <section class="panel" data-panel="assistant">
+      <h2>🤖&nbsp;PredictAI Transformer Assistant</h2>
+      <p class="assistant-sub">Ask about asset health, interpret predictions, diagnose faults, and get maintenance recommendations - rule-based over the scored fleet, no LLM.</p>
+
+      <div class="assistant-grid">
+        <div class="assistant-chat">
+          <div class="assistant-chat-header">
+            <span>💬 Chat</span>
+            <button type="button" id="chat-clear" title="Clear conversation">Clear</button>
+          </div>
+          <div class="chat-log" id="chat-log"></div>
+          <div class="chat-suggestions" id="chat-suggestions">
+            <button type="button" class="chat-chip">Predict T0208</button>
+            <button type="button" class="chat-chip">Health of T0208</button>
+            <button type="button" class="chat-chip">Why is T0208 high risk?</button>
+            <button type="button" class="chat-chip">Top 5 riskiest feeders</button>
+          </div>
+          <form id="chat-form">
+            <input type="text" id="chat-input" placeholder="e.g. Predict transformer T0208" autocomplete="off">
+            <button type="submit">Send</button>
+          </form>
+        </div>
+
+        <div class="assistant-card" id="prediction-card">
+          <p class="assistant-placeholder">Ask about a specific transformer (e.g. “predict T0208”) to see its full prediction card here.</p>
+        </div>
+      </div>
+    </section>
+
     {% for panel in [transformer, meter, feeder] %}
     <section class="panel" data-panel="{{ panel.slug }}">
       <h2>{{ entity_icon(panel.slug) }}{{ panel.entity_label | capitalize }} — {{ panel.score_label }}</h2>
@@ -90,6 +120,14 @@
           </table>
         </div>
       </div>
+
+      {% if panel.landscape_html %}
+      <div class="landscape-wrap">
+        <h3>3D risk landscape</h3>
+        <p class="landscape-caption">{{ panel.landscape_caption }}</p>
+        {{ panel.landscape_html | safe }}
+      </div>
+      {% endif %}
     </section>
     {% endfor %}
   </main>
@@ -100,29 +138,6 @@
     <code>python3 models/outage_forecasting.py</code> (in that order — outage forecasting depends on the failure model's output).
   </footer>
 
-  <button type="button" id="chat-toggle" aria-label="Ask about the data">Ask about the data</button>
-
-  <div id="chat-panel" hidden>
-    <div class="chat-header">
-      <span>Ask about the data</span>
-      <div class="chat-header-actions">
-        <button type="button" id="chat-clear" aria-label="Clear conversation" title="Clear conversation">Clear</button>
-        <button type="button" id="chat-close" aria-label="Close">&times;</button>
-      </div>
-    </div>
-    <div class="chat-log" id="chat-log"></div>
-    <div class="chat-suggestions" id="chat-suggestions">
-      <button type="button" class="chat-chip">How many transformers are critical?</button>
-      <button type="button" class="chat-chip">Why are transformers critical?</button>
-      <button type="button" class="chat-chip">Which meters are flagged?</button>
-      <button type="button" class="chat-chip">Top 5 riskiest feeders</button>
-    </div>
-    <form id="chat-form">
-      <input type="text" id="chat-input" placeholder="e.g. why is T0208 high risk?" autocomplete="off">
-      <button type="submit">Send</button>
-    </form>
-  </div>
-
   <script>
     // All three panels render normally above (so Plotly measures real,
     // visible containers) - only after that do we hide two of them.
@@ -131,7 +146,7 @@
     (function () {
       var buttons = document.querySelectorAll(".tab-btn");
       var panels = document.querySelectorAll("section.panel");
-      var ACCENTS = { transformer: "#2a78d6", meter: "#eb6834", feeder: "#1baf7a" };
+      var ACCENTS = { assistant: "#2a78d6", transformer: "#2a78d6", meter: "#eb6834", feeder: "#1baf7a" };
 
       function showPanel(slug) {
         panels.forEach(function (p) {
@@ -166,15 +181,19 @@
       showPanel(buttons[0].dataset.panel);
     })();
 
-    // Chat widget: rule-based, no LLM/network call beyond our own /api/chat.
+    // AI Assistant: rule-based chat (no LLM/network call beyond our own
+    // /api/chat) plus a structured prediction card for whichever
+    // transformer the conversation last mentioned - driven by
+    // /api/transformer/<id> and friends, never invented client-side.
     (function () {
-      var toggle = document.getElementById("chat-toggle");
-      var panel = document.getElementById("chat-panel");
-      var closeBtn = document.getElementById("chat-close");
       var clearBtn = document.getElementById("chat-clear");
       var log = document.getElementById("chat-log");
       var form = document.getElementById("chat-form");
       var input = document.getElementById("chat-input");
+      var card = document.getElementById("prediction-card");
+
+      var TIER_COLORS = { low: "#0ca30c", moderate: "#fab219", elevated: "#ec835a", critical: "#d03b3b" };
+      var currentFocusId = null;
 
       // Narrowly linkifies only a self-generated /reports/<name>.pdf path
       // (from the "generate report" chat intent) into a clickable link.
@@ -205,61 +224,145 @@
       }
 
       function greet() {
-        addMessage("Ask me things like “how many transformers are critical?”, “why is T0208 high risk?”, or “top 5 riskiest feeders”.", "bot");
+        addMessage("Ask me things like “predict T0208”, “health of T0208”, or “top 5 riskiest feeders”.", "bot");
       }
 
-      function openChat() {
-        panel.hidden = false;
-        if (log.children.length === 0) {
-          greet();
-        }
-        input.focus();
+      function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+      function field(value, label, full) {
+        return '<div class="assistant-field' + (full ? " full" : "") + '">' +
+          '<div class="assistant-field-value">' + value + "</div>" +
+          '<div class="assistant-field-label">' + label + "</div></div>";
       }
 
-      // Always reachable regardless of what else happens on the page: no
-      // reliance on event bubbling order or on a second listener elsewhere
-      // to actually hide the panel.
-      function closeChat() {
-        panel.hidden = true;
+      function clearCard() {
+        currentFocusId = null;
+        card.innerHTML = '<p class="assistant-placeholder">Ask about a specific transformer (e.g. “predict T0208”) to see its full prediction card here.</p>';
       }
 
-      // The toggle button opens the panel if closed, closes it if already
-      // open - a real toggle, not open-only (clicking it a second time used
-      // to do nothing, which looked like a broken button). stopPropagation
-      // keeps this click from also reaching the document-level
-      // click-outside-closes listener below in the same event.
-      toggle.addEventListener("click", function (e) {
-        e.stopPropagation();
-        if (panel.hidden) {
-          openChat();
-        } else {
-          closeChat();
-        }
-      });
-      closeBtn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        closeChat();
-      });
-      clearBtn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        log.innerHTML = "";
-        greet();
-        fetch("/api/chat/reset", { method: "POST" }).catch(function () {});
-      });
+      // All values rendered here come from our own /api/transformer/*
+      // responses - fixed catalog strings (risk tier, failure-mode labels,
+      // maintenance actions) and CSV-sourced ids/numbers, never free-form
+      // user input - so building this markup by concatenation is the same
+      // trust level as the Jinja-rendered score table above.
+      function renderCard(data) {
+        currentFocusId = data.id;
+        var color = TIER_COLORS[data.risk_tier] || "#52514e";
+        var checklist = data.recommendations.map(function (a) { return "<li>" + a + "</li>"; }).join("");
+        if (!checklist) checklist = "<li>No recommendation available.</li>";
 
-      // Belt-and-braces: Escape key and clicking anywhere outside the
-      // panel also close it, in case the small (x) target is ever hard to
-      // hit precisely.
-      document.addEventListener("keydown", function (e) {
-        if (e.key === "Escape" && !panel.hidden) {
-          closeChat();
+        card.innerHTML =
+          "<h4>📋 Prediction Result — " + data.id +
+          ' <span class="assistant-tag" style="background:' + color + '">' + data.risk_tier.toUpperCase() + "</span></h4>" +
+          '<div class="assistant-field-grid">' +
+            field(data.health_score.toFixed(0) + "%", "Health score") +
+            field(cap(data.risk_tier), "Risk level") +
+            field(data.risk_score.toFixed(0) + "%", "Failure probability") +
+            field(data.confidence_pct.toFixed(0) + "%", "Confidence") +
+            field(data.predicted_failure_mode, "Likely cause", true) +
+          "</div>" +
+          '<div class="assistant-reco-label">Recommendations</div>' +
+          '<ul class="assistant-check-list">' + checklist + "</ul>" +
+          '<div class="assistant-actions">' +
+            '<button type="button" id="btn-report">📄 Generate PDF Report</button>' +
+            '<button type="button" id="btn-history">📈 View History</button>' +
+            '<button type="button" id="btn-compare">⚖️ Compare</button>' +
+          "</div>" +
+          '<div id="report-container"></div>' +
+          '<div id="history-container"></div>' +
+          '<div id="compare-container"></div>';
+
+        document.getElementById("btn-report").addEventListener("click", function () { doReport(data.id); });
+        document.getElementById("btn-history").addEventListener("click", function () { toggleHistory(data.id); });
+        document.getElementById("btn-compare").addEventListener("click", function () { toggleCompare(data.id, data.compare_pool); });
+      }
+
+      function doReport(id) {
+        fetch("/api/transformer/" + id + "/report", { method: "POST" })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            var container = document.getElementById("report-container");
+            if (data.error) { container.textContent = data.error; return; }
+            var link = document.createElement("a");
+            link.href = data.url;
+            link.target = "_blank";
+            link.rel = "noopener";
+            link.className = "assistant-download";
+            link.textContent = "⬇ Download " + data.filename;
+            container.innerHTML = "";
+            container.appendChild(link);
+          })
+          .catch(function () {});
+      }
+
+      function toggleHistory(id) {
+        var container = document.getElementById("history-container");
+        if (container.dataset.loaded === "1") {
+          container.innerHTML = "";
+          container.dataset.loaded = "0";
+          return;
         }
-      });
-      document.addEventListener("click", function (e) {
-        if (panel.hidden) return;
-        if (panel.contains(e.target) || toggle.contains(e.target)) return;
-        closeChat();
-      });
+        fetch("/api/transformer/" + id + "/history")
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (data.error) { container.textContent = data.error; return; }
+            container.innerHTML =
+              '<p class="assistant-sub-label">Maintenance history — ' + id + "</p>" +
+              '<p class="assistant-meta">Last serviced ' + data.last_serviced + " · last oil replacement " +
+              data.last_oil_replacement + " · " + data.previous_failures + " previous failure(s)</p>" +
+              '<div class="assistant-history-charts">' +
+              data.charts.map(function (c, i) { return '<div class="history-chart" id="history-chart-' + i + '"></div>'; }).join("") +
+              "</div>";
+            container.dataset.loaded = "1";
+            data.charts.forEach(function (c, i) {
+              Plotly.newPlot("history-chart-" + i, c.figure.data, c.figure.layout, { displayModeBar: false });
+            });
+          })
+          .catch(function () {});
+      }
+
+      function toggleCompare(id, pool) {
+        var container = document.getElementById("compare-container");
+        if (container.dataset.loaded === "1") {
+          container.innerHTML = "";
+          container.dataset.loaded = "0";
+          return;
+        }
+        if (!pool.length) {
+          container.textContent = "No other transformers available to compare against.";
+          return;
+        }
+        var options = pool.map(function (p) { return "<option value=\"" + p + "\">" + p + "</option>"; }).join("");
+        container.innerHTML =
+          '<label class="assistant-sub-label">Compare against (top 30 by risk)</label>' +
+          '<select id="compare-select">' + options + "</select>" +
+          '<div id="compare-result"></div>';
+        container.dataset.loaded = "1";
+
+        function runCompare(otherId) {
+          fetch("/api/transformer/" + id + "/compare/" + otherId)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              if (data.error) return;
+              var result = document.getElementById("compare-result");
+              var rowsHtml = data.rows.map(function (r) {
+                return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td><td>" + r[2] + "</td></tr>";
+              }).join("");
+              result.innerHTML =
+                "<h5>" + data.a + " vs " + data.b + "</h5>" +
+                '<table class="compare-table"><thead><tr><th>Metric</th><th>' + data.a + "</th><th>" + data.b + "</th></tr></thead><tbody>" +
+                rowsHtml + "</tbody></table>" +
+                '<div id="compare-chart"></div>';
+              Plotly.newPlot("compare-chart", data.figure.data, data.figure.layout, { displayModeBar: false });
+            })
+            .catch(function () {});
+        }
+
+        document.getElementById("compare-select").addEventListener("change", function (e) {
+          runCompare(e.target.value);
+        });
+        runCompare(pool[0]);
+      }
 
       function sendMessage(message) {
         message = message.trim();
@@ -272,7 +375,15 @@
           body: JSON.stringify({ message: message }),
         })
           .then(function (r) { return r.json(); })
-          .then(function (data) { addMessage(data.reply, "bot"); })
+          .then(function (data) {
+            addMessage(data.reply, "bot");
+            if (data.focus_id && data.focus_id !== currentFocusId) {
+              fetch("/api/transformer/" + data.focus_id)
+                .then(function (r) { return r.json(); })
+                .then(function (d) { if (!d.error) renderCard(d); })
+                .catch(function () {});
+            }
+          })
           .catch(function () { addMessage("Sorry, something went wrong reaching the server.", "bot"); });
       }
 
@@ -289,6 +400,16 @@
           sendMessage(chip.textContent);
         });
       });
+
+      clearBtn.addEventListener("click", function () {
+        log.innerHTML = "";
+        greet();
+        clearCard();
+        fetch("/api/chat/reset", { method: "POST" }).catch(function () {});
+      });
+
+      greet();
+      clearCard();
     })();
   </script>
 </body>
