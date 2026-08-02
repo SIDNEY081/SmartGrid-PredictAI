@@ -877,6 +877,36 @@ table.compare-table th {
   50% { filter: drop-shadow(0 0 3px var(--glow-dim)); }
 }
 
+/* Small bright pulses that keep traveling along each cable once it's lit,
+   layered on top of the steady-glowing .cable-current - this is what
+   makes the current read as still flowing instead of a one-shot reveal
+   that then just sits there. */
+.cable-pulse {
+  fill: none;
+  stroke: #f2fff5;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 1 40;
+  opacity: 0;
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.95));
+  animation:
+    cable-pulse-in 0.4s ease-out forwards,
+    cable-flow 2.8s linear infinite;
+  animation-delay: var(--pulse-delay, 0s), var(--pulse-delay, 0s);
+}
+
+.cable-pulse.alt {
+  animation-duration: 0.4s, 3.6s;
+}
+
+@keyframes cable-pulse-in {
+  to { opacity: 0.9; }
+}
+
+@keyframes cable-flow {
+  to { stroke-dashoffset: -400; }
+}
+
 /* Bulbs sit dark and dead through the blackout, then - right as the
    current sweep reaches their position - stutter through a couple of
    power-restoring flickers before holding fully lit. */

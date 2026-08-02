@@ -24,18 +24,21 @@
     <path class="cable-current" pathLength="100" style="--flow-delay:1.3s" d="M -50,560 C 380,490 860,640 1650,540"/>
     <path class="cable-current alt" pathLength="100" style="--flow-delay:1.4s" d="M -50,760 C 520,700 1020,820 1650,730"/>
 
-    {{ bulb(220, 75, "1.15s") }}
-    {{ bulb(1000, 150, "1.55s") }}
-    {{ bulb(1450, 115, "1.8s") }}
+    <!-- Continuous traveling pulses on top of the now-lit wire, so the
+         current keeps visibly flowing instead of settling once revealed. -->
+    <path class="cable-pulse" style="--pulse-delay:2s" d="M -50,130 C 320,50 780,210 1650,100"/>
+    <path class="cable-pulse alt" style="--pulse-delay:2.15s" d="M -50,330 C 420,420 900,230 1650,340"/>
+    <path class="cable-pulse" style="--pulse-delay:2.3s" d="M -50,560 C 380,490 860,640 1650,540"/>
+    <path class="cable-pulse alt" style="--pulse-delay:2.4s" d="M -50,760 C 520,700 1020,820 1650,730"/>
 
-    {{ bulb(460, 405, "1.4s") }}
-    {{ bulb(1150, 270, "1.75s") }}
+    <!-- Two bulbs per side, in the margins either side of the centered
+         card/hero where they're actually visible against the black
+         background, not hidden behind the opaque panels. -->
+    {{ bulb(140, 95, "1.12s") }}
+    {{ bulb(140, 735, "1.51s") }}
 
-    {{ bulb(300, 510, "1.45s") }}
-    {{ bulb(1250, 565, "1.9s") }}
-
-    {{ bulb(620, 735, "1.7s") }}
-    {{ bulb(1300, 755, "2.05s") }}
+    {{ bulb(1470, 335, "2.05s") }}
+    {{ bulb(1470, 545, "2.2s") }}
   </svg>
 
   <div class="login-shell">
