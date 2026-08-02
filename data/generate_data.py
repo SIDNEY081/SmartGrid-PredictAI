@@ -24,8 +24,15 @@ N_FEEDERS = 1500
 # reproducibility goal of the fixed RANDOM_SEED.
 REFERENCE_YEAR = 2026
 REFERENCE_DATE = pd.Timestamp("2026-07-31")
-PROVINCES = ["Gauteng", "Western Cape", "KwaZulu-Natal", "Eastern Cape",
-             "Free State", "Limpopo", "Mpumalanga", "North West", "Northern Cape"]
+# Tzaneen and the surrounding Mopani District villages/towns (Limpopo) -
+# this prototype represents one regional utility office's service area, not
+# all of South Africa. Kept at exactly 9 entries (the same length as the
+# nine-province list this replaced) so rng.choice() draws the same number
+# of indices from the stream either way - every column generated after
+# `location` below (capacity_kva, previous_failures, service dates) stays
+# byte-identical to before this change; only the location labels differ.
+LOCATIONS = ["Tzaneen", "Nkowankowa", "Lenyenye", "Modjadjiskloof", "Haenertsburg",
+             "Ga-Kgapane", "Bolobedu", "Xihoko", "Politsi"]
 CAPACITY_KVA_OPTIONS = [50, 100, 200, 315, 500, 800, 1000, 1600, 2000]
 
 
@@ -68,7 +75,7 @@ def generate_transformer_data(n=N_TRANSFORMERS, n_feeders=N_FEEDERS, seed=RANDOM
     # for the same seed - inserting a draw earlier would shift the whole
     # rng stream and silently change age_years/oil_quality_index/etc for
     # existing rows.
-    location = rng.choice(PROVINCES, size=n)
+    location = rng.choice(LOCATIONS, size=n)
     capacity_kva = rng.choice(CAPACITY_KVA_OPTIONS, size=n)
     installation_year = (REFERENCE_YEAR - age_years.round()).astype(int)
 
