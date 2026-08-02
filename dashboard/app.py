@@ -13,14 +13,17 @@ Then open http://127.0.0.1:5000
 
 import json
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 
+import anthropic
 import pandas as pd
 import plotly.graph_objects as go
 from flask import Flask, jsonify, redirect, render_template, request, send_from_directory, session, url_for
 from werkzeug.utils import secure_filename
 
+import ai_tools
 import auth
 import chatbot
 import knowledge_base
@@ -304,26 +307,108 @@ def index():
     )
 
 
+AI_SYSTEM_PROMPT = """You are PredictAI, the AI assistant embedded in SmartGrid PredictAI - a \
+predictive-maintenance platform for electricity utility engineers, covering the \
+transformer, meter, and feeder fleet around Tzaneen and the Mopani District. You \
+help maintenance engineers and system administrators interpret failure predictions, \
+theft detection, and outage forecasts.
+
+You are a technical assistant for the people who run the grid, not a customer-support \
+bot. Answer like a knowledgeable colleague: direct, specific, and grounded in the \
+actual scored data.
+
+Rules:
+- Never state a risk score, health score, date, location, or any other fact about a \
+specific transformer/meter/feeder without calling a tool first. You have no memory of \
+the fleet's data - every number must come from a tool result.
+- If a tool reports an asset doesn't exist, say so plainly - don't guess at a substitute id.
+- Keep replies concise and skimmable - this is read in a chat panel, not a report.
+- For general engineering questions (e.g. "what is dissolved gas analysis?", "what \
+causes a humming noise?"), use lookup_engineering_reference rather than answering from \
+general knowledge, so answers stay consistent with this platform's reference material.
+- If a question is ambiguous about which asset it means, ask a brief clarifying \
+question rather than guessing.
+"""
+
+_anthropic_client = None
+
+
+def get_anthropic_client():
+    global _anthropic_client
+    if _anthropic_client is None:
+        _anthropic_client = anthropic.Anthropic()
+    return _anthropic_client
+
+
 @app.route("/api/chat", methods=["POST"])
 @auth.roles_required("administrator", "engineer")
 def chat():
-    message = (request.get_json(silent=True) or {}).get("message", "")
-    context = session.get("chat_context", {})
-    reply = chatbot.answer(message, DATA, context=context)
-    session["chat_context"] = context
+    message = (request.get_json(silent=True) or {}).get("message", "").strip()
+    if not message:
+        return jsonify({"reply": "Ask me something about a transformer, meter, or feeder.", "focus_id": None})
 
+    user = auth.current_user()
+    history = auth.get_chat_history(user["id"], limit=20)
+    history.append({"role": "user", "content": message})
+
+    try:
+        runner = get_anthropic_client().beta.messages.tool_runner(
+            model="claude-sonnet-5",
+            max_tokens=1536,
+            system=AI_SYSTEM_PROMPT,
+            tools=ai_tools.ALL_TOOLS,
+            output_config={"effort": "medium"},
+            messages=history,
+        )
+        tool_calls, final_message = [], None
+        for msg in runner:
+            final_message = msg
+            tool_calls.extend(b for b in msg.content if b.type == "tool_use")
+    except Exception as exc:
+        # A missing ANTHROPIC_API_KEY surfaces as a plain TypeError from deep
+        # inside the SDK's auth-header construction, not an AuthenticationError
+        # (that class is only for a *rejected* key, i.e. a 401 response) - so
+        # this checks both the typed exception and the message text rather
+        # than relying on isinstance() alone.
+        text = str(exc).lower()
+        if isinstance(exc, anthropic.AuthenticationError) or "api_key" in text or "authentication" in text:
+            return jsonify({
+                "reply": "The AI Assistant isn't configured yet - ask an administrator to set "
+                         "the ANTHROPIC_API_KEY environment variable.",
+                "focus_id": None,
+            }), 503
+        return jsonify({"reply": f"Sorry, the AI Assistant hit an error: {exc}", "focus_id": None}), 502
+
+    reply_text = "".join(
+        b.text for b in (final_message.content if final_message else []) if b.type == "text"
+    ).strip()
+    if not reply_text:
+        reply_text = "I wasn't able to put together an answer for that - try rephrasing?"
+
+    auth.save_chat_message(user["id"], "user", message)
+    auth.save_chat_message(user["id"], "assistant", reply_text)
+    auth.log_activity(user, "asked the AI Assistant a question")
+
+    # Focus id for the prediction card: whichever transformer the model
+    # actually called a tool for, most recent call wins - resolved against
+    # the real CSV so a malformed id from the model never reaches the UI.
     focus_id = None
-    last_id = context.get("last_id")
-    if last_id and last_id[0] == "transformer":
-        focus_id = chatbot.resolve_id("transformer", last_id[2], DATA)
+    for call in reversed(tool_calls):
+        inp = call.input or {}
+        raw_id = inp.get("transformer_id_2") or inp.get("transformer_id_1") or inp.get("transformer_id")
+        if raw_id:
+            match = re.search(r"(\d+)$", str(raw_id))
+            if match:
+                focus_id = chatbot.resolve_id("transformer", int(match.group(1)), DATA)
+            break
 
-    return jsonify({"reply": reply, "focus_id": focus_id})
+    return jsonify({"reply": reply_text, "focus_id": focus_id})
 
 
 @app.route("/api/chat/reset", methods=["POST"])
 @auth.roles_required("administrator", "engineer")
 def chat_reset():
-    session.pop("chat_context", None)
+    auth.clear_chat_history(auth.current_user()["id"])
     return jsonify({"ok": True})
 
 

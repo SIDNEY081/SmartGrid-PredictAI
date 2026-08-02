@@ -118,7 +118,7 @@
       {% if "assistant" in allowed_panels %}
       <section class="panel" data-panel="assistant">
         <h2>🤖&nbsp;PredictAI Transformer Assistant</h2>
-        <p class="assistant-sub">Ask about asset health, interpret predictions, diagnose faults, and get maintenance recommendations - rule-based over the scored fleet, no LLM.</p>
+        <p class="assistant-sub">Ask about asset health, interpret predictions, diagnose faults, and get maintenance recommendations - Claude with real tool access to the scored fleet, never inventing a number.</p>
 
         <div class="assistant-grid">
           <div class="assistant-chat">
@@ -515,7 +515,7 @@
       }
 
       function greet() {
-        addMessage("Ask me things like “predict T0208”, “health of T0208”, or “top 5 riskiest feeders”.", "bot");
+        addMessage("Ask me anything about the fleet - “predict T0208”, “why is T0208 high risk?”, “compare T0208 and T2960”, or “what's dissolved gas analysis?”", "bot");
       }
 
       function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }

@@ -21,5 +21,9 @@ shap
 # PDF report generation (pure-Python, no system deps - Windows-friendly)
 reportlab
 
+# LLM-backed AI Assistant (Flask dashboard only - reads ANTHROPIC_API_KEY
+# from the environment; see README "AI Assistant" section)
+anthropic
+
 # Testing
 pytest

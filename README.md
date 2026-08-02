@@ -32,8 +32,9 @@ SmartGrid-PredictAI/
     explain.py                     # shared SHAP / feature-importance helpers used by all three
   dashboard/
     app.py                         # Flask app serving the planner dashboard (login-gated, role-based nav)
-    auth.py                        # SQLite users/roles/sessions, technician assignments, inspections, activity log
-    chatbot.py                     # rule-based Q&A over the score CSVs (no LLM)
+    auth.py                        # SQLite users/roles/sessions, technician assignments, inspections, activity log, chat history
+    ai_tools.py                    # Flask-only: chatbot.py's reply functions wrapped as tools for the LLM assistant
+    chatbot.py                     # rule-based Q&A over the score CSVs (Streamlit; also the data functions ai_tools.py wraps)
     knowledge_base.py              # hand-written fault-symptom/glossary reference data for the chatbot
     report.py                      # one-page PDF maintenance report per transformer (reportlab)
     streamlit_app.py               # interactive upload-CSV / Predict console (see below)
@@ -176,6 +177,17 @@ above (or scroll down on the login page for the full list). The nav on the
 left, and the panels/tabs it exposes, depend on the signed-in role; see
 "Login & roles" above.
 
+For the **AI Assistant** tab (Administrator/Engineer only) to actually
+answer questions, set an API key before starting the app:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...   # PowerShell: $env:ANTHROPIC_API_KEY = "sk-ant-..."
+```
+
+Without it, the tab still loads — asking it something just returns a clear
+"not configured" message instead of failing silently. Everything else in
+the app works fine either way.
+
 **Streamlit app** — a second, more visual console covering all three models
 (the Flask dashboard above is the lighter-weight one):
 
@@ -194,17 +206,31 @@ Theft Detection / Feeder Outage) shows a severity-tier breakdown, the top-15
 riskiest rows with their reason text, a global feature-importance chart, and
 a SHAP "why" chart for any single row you pick from the top 30.
 
-**AI Assistant** — both apps have the same rule-based (no LLM) Q&A over the
-score CSVs, as a dedicated "🤖 AI Assistant" tab: chat on one side, a
-structured prediction card (health score, risk level, failure probability,
-confidence, likely cause, recommendations) for whichever transformer the
-conversation last mentioned on the other, with Generate PDF Report / View
-History / Compare actions. Answers things like "how many feeders are
-critical?" or "predict T0208" by keyword-matching the question onto a
-pandas filter — no API key, no external network call, no cost. See
-`dashboard/chatbot.py` (shared by both apps), and "Chatbot capabilities"
-below for the full set of transformer-specific intents. In the Flask app
-this tab is only visible to the Administrator and Engineer roles.
+**AI Assistant** — a dedicated "🤖 AI Assistant" tab in both apps: chat on one
+side, a structured prediction card (health score, risk level, failure
+probability, confidence, likely cause, recommendations) for whichever
+transformer the conversation last mentioned on the other, with Generate PDF
+Report / View History / Compare actions. The two apps answer it differently:
+
+- **Flask app** (`dashboard/app.py`) — a real LLM (Claude, via the Anthropic
+  API) with **tool access**, not free-text generation. `dashboard/ai_tools.py`
+  wraps each of `chatbot.py`'s existing reply functions (predict, health,
+  history, compare, generate-report, fleet queries, glossary lookups) as a
+  typed tool; the model's job is understanding the question and phrasing the
+  answer, and every fact in every reply comes from a real tool call against
+  the scored CSVs — it never states a number from memory. Needs an
+  `ANTHROPIC_API_KEY` environment variable (get one at
+  [console.anthropic.com](https://console.anthropic.com)); without one, the
+  tab replies with a clear "not configured" message instead of failing
+  silently. Conversation history is stored per user in `data/app.db` (not the
+  session cookie, which would overflow), capped to the last 20 turns sent to
+  the model per request. Restricted to the Administrator and Engineer roles.
+- **Streamlit app** (`dashboard/streamlit_app.py`) — the original rule-based
+  (no LLM) engine: keyword-matches the question onto a pandas filter, no API
+  key, no external network call, no cost. See `dashboard/chatbot.py` and
+  "Chatbot capabilities" below for the full set of transformer-specific
+  intents this engine understands (the Flask LLM assistant understands the
+  same intents, just via natural language instead of keyword matching).
 
 **Power BI / Tableau**: `transformer_risk_scores.csv`, `meter_theft_scores.csv`,
 and `feeder_outage_scores.csv` are meant to be imported directly (Get Data ->

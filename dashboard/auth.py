@@ -119,6 +119,14 @@ def init_db():
             action TEXT NOT NULL,
             created_at TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
         """
     )
     conn.commit()
@@ -256,6 +264,37 @@ def recent_activity(limit=50):
         "SELECT * FROM activity_log ORDER BY created_at DESC LIMIT ?", (limit,)
     ).fetchall()
     return [dict(r) for r in rows]
+
+
+# --------------------------------------------------------------------------
+# AI Assistant conversation history - stored server-side per user rather than
+# in the session cookie (which has a ~4KB limit multi-turn history would
+# blow through), and so it survives a page reload. Only user/assistant text
+# turns are kept - not the tool_use/tool_result exchange within a turn, since
+# each new question re-runs the real tools for fresh data anyway; there's no
+# need to replay stale tool output from a prior turn.
+# --------------------------------------------------------------------------
+def save_chat_message(user_id, role, content):
+    db = get_db()
+    db.execute(
+        "INSERT INTO chat_messages (user_id, role, content, created_at) VALUES (?, ?, ?, ?)",
+        (user_id, role, content, _now()),
+    )
+    db.commit()
+
+
+def get_chat_history(user_id, limit=20):
+    rows = get_db().execute(
+        "SELECT role, content FROM chat_messages WHERE user_id = ? ORDER BY id DESC LIMIT ?",
+        (user_id, limit),
+    ).fetchall()
+    return [{"role": r["role"], "content": r["content"]} for r in reversed(rows)]
+
+
+def clear_chat_history(user_id):
+    db = get_db()
+    db.execute("DELETE FROM chat_messages WHERE user_id = ?", (user_id,))
+    db.commit()
 
 
 # --------------------------------------------------------------------------
