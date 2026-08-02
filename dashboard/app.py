@@ -13,12 +13,15 @@ Then open http://127.0.0.1:5000
 
 import json
 import os
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
-from flask import Flask, jsonify, render_template, request, send_from_directory, session
+from flask import Flask, jsonify, redirect, render_template, request, send_from_directory, session, url_for
+from werkzeug.utils import secure_filename
 
+import auth
 import chatbot
 import knowledge_base
 import report
@@ -28,10 +31,28 @@ DATA = ROOT / "data"
 REPORTS = ROOT / "reports"
 
 app = Flask(__name__)
-# Only signs the session cookie holding chat follow-up context (last id/entity
-# asked about); regenerated per process, so restarting the app just resets
-# any open conversations rather than needing a stable stored secret.
+# Signs both the login session cookie and the chat follow-up context (last
+# id/entity asked about); regenerated per process, so restarting the app
+# just signs everyone out and resets any open conversations rather than
+# needing a stable stored secret - fine for this prototype, not for a real
+# production deployment.
 app.secret_key = os.urandom(24)
+app.teardown_appcontext(auth.close_db)
+auth.init_db()
+
+# Roles allowed into each nav panel - enforced both server-side (route
+# decorators below) and client-side (index.html only renders the nav
+# buttons/panels a role can reach), so hiding a button is a UX nicety, not
+# the actual access boundary.
+PANEL_ROLES = {
+    "home": set(auth.ROLES),
+    "assistant": {"administrator", "engineer"},
+    "transformer": {"administrator", "engineer", "operator", "asset_manager"},
+    "meter": {"administrator", "engineer", "operator", "asset_manager"},
+    "feeder": {"administrator", "engineer", "operator", "asset_manager"},
+    "reports": {"administrator", "engineer", "asset_manager"},
+    "settings": {"administrator"},
+}
 
 # Status palette (good -> warning -> serious -> critical), fixed order,
 # never reused for anything else on the page.
@@ -169,54 +190,121 @@ def build_panel(
     }
 
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if session.get("user_id"):
+        return redirect(url_for("index"))
+
+    error = None
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        user = auth.verify_login(username, password)
+        if user is None:
+            error = "Incorrect username or password."
+        else:
+            session.clear()
+            session["user_id"] = user["id"]
+            session["username"] = user["username"]
+            session["full_name"] = user["full_name"]
+            session["role"] = user["role"]
+            auth.log_activity(user, "logged in")
+            next_path = request.form.get("next") or url_for("index")
+            return redirect(next_path)
+
+    return render_template(
+        "login.html", error=error, role_labels=auth.ROLE_LABELS, next_path=request.args.get("next", "")
+    )
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    user = auth.current_user()
+    if user:
+        auth.log_activity(user, "logged out")
+    session.clear()
+    return redirect(url_for("login"))
+
+
 @app.route("/")
+@auth.login_required
 def index():
-    transformer = build_panel(
-        DATA / "transformer_risk_scores.csv",
-        id_col="transformer_id",
-        score_col="risk_score",
-        score_label="Risk score",
-        tier_col="risk_tier",
-        flag_col="alert_flag",
-        tier_order=["low", "moderate", "elevated", "critical"],
-        entity_label="transformers",
-        slug="transformer",
-        raw_path=DATA / "transformer_data.csv",
-        landscape_cols=("age_years", "temperature_rise_c"),
-        landscape_labels=["Age (years)", "Temp rise (°C)", "Risk score"],
+    user = auth.current_user()
+    role = user["role"]
+    allowed_panels = {panel for panel, roles in PANEL_ROLES.items() if role in roles}
+
+    transformer = meter = feeder = None
+    if role in PANEL_ROLES["transformer"]:
+        transformer = build_panel(
+            DATA / "transformer_risk_scores.csv",
+            id_col="transformer_id",
+            score_col="risk_score",
+            score_label="Risk score",
+            tier_col="risk_tier",
+            flag_col="alert_flag",
+            tier_order=["low", "moderate", "elevated", "critical"],
+            entity_label="transformers",
+            slug="transformer",
+            raw_path=DATA / "transformer_data.csv",
+            landscape_cols=("age_years", "temperature_rise_c"),
+            landscape_labels=["Age (years)", "Temp rise (°C)", "Risk score"],
+        )
+    if role in PANEL_ROLES["meter"]:
+        meter = build_panel(
+            DATA / "meter_theft_scores.csv",
+            id_col="meter_id",
+            score_col="anomaly_score",
+            score_label="Anomaly score",
+            tier_col="priority_tier",
+            flag_col="investigation_flag",
+            tier_order=["low", "moderate", "elevated", "critical"],
+            entity_label="meters",
+            slug="meter",
+            raw_path=DATA / "meter_data.csv",
+            landscape_cols=("pct_drop_recent", "night_usage_ratio"),
+            landscape_labels=["Recent usage drop (%)", "Night usage ratio", "Anomaly score"],
+        )
+    if role in PANEL_ROLES["feeder"]:
+        feeder = build_panel(
+            DATA / "feeder_outage_scores.csv",
+            id_col="feeder_id",
+            score_col="outage_risk_score",
+            score_label="Outage risk score",
+            tier_col="risk_tier",
+            flag_col="alert_flag",
+            tier_order=["low", "moderate", "elevated", "critical"],
+            entity_label="feeders",
+            slug="feeder",
+            raw_path=DATA / "feeder_data.csv",
+            landscape_cols=("peak_load_pct", "vegetation_encroachment_score"),
+            landscape_labels=["Peak load (%)", "Vegetation score", "Outage risk score"],
+        )
+
+    home = None
+    if role == "administrator":
+        home = {
+            "kind": "administrator",
+            "user_count": len(auth.list_users()),
+            "dataset_stats": auth.dataset_stats(),
+            "activity": auth.recent_activity(limit=15),
+        }
+    elif role == "technician":
+        home = {"kind": "technician"}
+    else:
+        home = {"kind": "fleet"}
+
+    return render_template(
+        "index.html",
+        user=user,
+        role_label=auth.ROLE_LABELS[role],
+        allowed_panels=allowed_panels,
+        home=home,
+        transformer=transformer, meter=meter, feeder=feeder,
     )
-    meter = build_panel(
-        DATA / "meter_theft_scores.csv",
-        id_col="meter_id",
-        score_col="anomaly_score",
-        score_label="Anomaly score",
-        tier_col="priority_tier",
-        flag_col="investigation_flag",
-        tier_order=["low", "moderate", "elevated", "critical"],
-        entity_label="meters",
-        slug="meter",
-        raw_path=DATA / "meter_data.csv",
-        landscape_cols=("pct_drop_recent", "night_usage_ratio"),
-        landscape_labels=["Recent usage drop (%)", "Night usage ratio", "Anomaly score"],
-    )
-    feeder = build_panel(
-        DATA / "feeder_outage_scores.csv",
-        id_col="feeder_id",
-        score_col="outage_risk_score",
-        score_label="Outage risk score",
-        tier_col="risk_tier",
-        flag_col="alert_flag",
-        tier_order=["low", "moderate", "elevated", "critical"],
-        entity_label="feeders",
-        slug="feeder",
-        raw_path=DATA / "feeder_data.csv",
-        landscape_cols=("peak_load_pct", "vegetation_encroachment_score"),
-        landscape_labels=["Peak load (%)", "Vegetation score", "Outage risk score"],
-    )
-    return render_template("index.html", transformer=transformer, meter=meter, feeder=feeder)
 
 
 @app.route("/api/chat", methods=["POST"])
+@auth.roles_required("administrator", "engineer")
 def chat():
     message = (request.get_json(silent=True) or {}).get("message", "")
     context = session.get("chat_context", {})
@@ -232,6 +320,7 @@ def chat():
 
 
 @app.route("/api/chat/reset", methods=["POST"])
+@auth.roles_required("administrator", "engineer")
 def chat_reset():
     session.pop("chat_context", None)
     return jsonify({"ok": True})
@@ -256,6 +345,7 @@ def _load_transformer_full():
 
 
 @app.route("/api/transformer/<transformer_id>")
+@auth.roles_required("administrator", "engineer", "operator", "asset_manager")
 def transformer_detail(transformer_id):
     full = _load_transformer_full()
     match = full[full["transformer_id"] == transformer_id]
@@ -281,6 +371,7 @@ def transformer_detail(transformer_id):
 
 
 @app.route("/api/transformer/<transformer_id>/history")
+@auth.roles_required("administrator", "engineer", "operator", "asset_manager")
 def transformer_history(transformer_id):
     full = _load_transformer_full()
     match = full[full["transformer_id"] == transformer_id]
@@ -326,6 +417,7 @@ def transformer_history(transformer_id):
 
 
 @app.route("/api/transformer/<transformer_id>/compare/<other_id>")
+@auth.roles_required("administrator", "engineer", "operator", "asset_manager")
 def transformer_compare(transformer_id, other_id):
     full = _load_transformer_full()
     a_match = full[full["transformer_id"] == transformer_id]
@@ -363,21 +455,146 @@ def transformer_compare(transformer_id, other_id):
 
 
 @app.route("/api/transformer/<transformer_id>/report", methods=["POST"])
+@auth.roles_required("administrator", "engineer")
 def transformer_report(transformer_id):
     try:
         path = report.generate_pdf_report(transformer_id, DATA)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 404
+    auth.log_activity(auth.current_user(), f"generated maintenance report for {transformer_id}")
     return jsonify({"filename": path.name, "url": f"/reports/{path.name}"})
 
 
+@app.route("/api/reports")
+@auth.roles_required("administrator", "engineer", "asset_manager")
+def list_reports():
+    REPORTS.mkdir(parents=True, exist_ok=True)
+    files = sorted(REPORTS.glob("*.pdf"), key=lambda p: p.stat().st_mtime, reverse=True)
+    return jsonify({
+        "reports": [
+            {
+                "filename": f.name,
+                "url": f"/reports/{f.name}",
+                "modified": datetime.fromtimestamp(f.stat().st_mtime).strftime("%Y-%m-%d %H:%M"),
+            }
+            for f in files
+        ]
+    })
+
+
 @app.route("/reports/<path:filename>")
+@auth.login_required
 def reports(filename):
     # as_attachment=True: without it, send_from_directory serves the PDF
     # inline (Content-Disposition: inline), so a browser with a built-in PDF
     # viewer just opens it in the tab instead of downloading it - not what
     # the "Download <file>.pdf" link/button in the AI Assistant card implies.
     return send_from_directory(REPORTS, filename, as_attachment=True)
+
+
+# --------------------------------------------------------------------------
+# Administrator APIs - user management, activity log, dataset visibility.
+# --------------------------------------------------------------------------
+@app.route("/api/admin/users", methods=["GET", "POST"])
+@auth.roles_required("administrator")
+def admin_users():
+    if request.method == "POST":
+        payload = request.get_json(silent=True) or {}
+        try:
+            auth.create_user(
+                payload.get("username", "").strip(),
+                payload.get("password", ""),
+                payload.get("full_name", "").strip(),
+                payload.get("role", ""),
+            )
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        auth.log_activity(auth.current_user(), f"created user '{payload.get('username')}' ({payload.get('role')})")
+        return jsonify({"ok": True}), 201
+
+    return jsonify({"users": auth.list_users(), "roles": auth.ROLES, "role_labels": auth.ROLE_LABELS})
+
+
+@app.route("/api/admin/users/<int:user_id>/active", methods=["POST"])
+@auth.roles_required("administrator")
+def admin_set_user_active(user_id):
+    payload = request.get_json(silent=True) or {}
+    auth.set_user_active(user_id, bool(payload.get("is_active", True)))
+    auth.log_activity(auth.current_user(), f"set user #{user_id} active={bool(payload.get('is_active', True))}")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/admin/activity")
+@auth.roles_required("administrator")
+def admin_activity():
+    return jsonify({"activity": auth.recent_activity(limit=50)})
+
+
+@app.route("/api/admin/datasets")
+@auth.roles_required("administrator")
+def admin_datasets():
+    return jsonify({"datasets": auth.dataset_stats()})
+
+
+# --------------------------------------------------------------------------
+# Technician APIs - assigned transformers + inspection submissions.
+# --------------------------------------------------------------------------
+ALLOWED_PHOTO_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+
+
+@app.route("/api/technician/assignments")
+@auth.roles_required("technician", "administrator")
+def technician_assignments():
+    user = auth.current_user()
+    technician_id = request.args.get("technician_id", type=int) if user["role"] == "administrator" else user["id"]
+    if technician_id is None:
+        return jsonify({"error": "technician_id is required for administrators"}), 400
+
+    assigned_ids = auth.get_assigned_transformer_ids(technician_id)
+    full = _load_transformer_full()
+    rows = full[full["transformer_id"].isin(assigned_ids)]
+
+    items = []
+    for _, row in rows.iterrows():
+        tier = row["risk_tier"]
+        history = auth.get_inspection_history(row["transformer_id"], limit=1)
+        items.append({
+            "id": row["transformer_id"],
+            "risk_score": round(float(row["risk_score"]), 1),
+            "risk_tier": tier,
+            "health_score": round(float(row["health_score"]), 1),
+            "predicted_failure_mode": row["predicted_failure_mode"],
+            "recommendations": knowledge_base.MAINTENANCE_ACTIONS.get(tier, []),
+            "location": row["location"],
+            "last_inspection": history[0] if history else None,
+        })
+    return jsonify({"transformers": items})
+
+
+@app.route("/api/technician/inspection", methods=["POST"])
+@auth.roles_required("technician", "administrator")
+def technician_inspection():
+    user = auth.current_user()
+    transformer_id = request.form.get("transformer_id", "").strip()
+    status = request.form.get("status", "").strip()
+    notes = request.form.get("notes", "").strip()
+
+    if not transformer_id or status not in ("pending", "inspected", "needs_followup"):
+        return jsonify({"error": "transformer_id and a valid status are required"}), 400
+
+    photo_filename = None
+    photo = request.files.get("photo")
+    if photo and photo.filename:
+        ext = photo.filename.rsplit(".", 1)[-1].lower() if "." in photo.filename else ""
+        if ext not in ALLOWED_PHOTO_EXTENSIONS:
+            return jsonify({"error": f"unsupported photo type: .{ext}"}), 400
+        stamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        photo_filename = secure_filename(f"{transformer_id}_{stamp}_{photo.filename}")
+        photo.save(auth.UPLOAD_DIR / photo_filename)
+
+    auth.submit_inspection(transformer_id, user["id"], status, notes, photo_filename)
+    auth.log_activity(user, f"submitted inspection for {transformer_id} ({status})")
+    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":

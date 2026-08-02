@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SmartGrid PredictAI - Sign in</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="login-body">
+  <div class="login-shell">
+    <div class="login-card">
+      <div class="login-brand">
+        <span class="brand-mark">SG</span>
+        <div>
+          <h1>SmartGrid PredictAI</h1>
+          <p>Internal predictive-maintenance platform - sign in with your role account.</p>
+        </div>
+      </div>
+
+      {% if error %}
+      <div class="login-error">{{ error }}</div>
+      {% endif %}
+
+      <form method="post" class="login-form">
+        <input type="hidden" name="next" value="{{ next_path }}">
+        <label>
+          Username
+          <input type="text" name="username" autocomplete="username" required autofocus>
+        </label>
+        <label>
+          Password
+          <input type="password" name="password" autocomplete="current-password" required>
+        </label>
+        <button type="submit">Sign in</button>
+      </form>
+
+      <details class="login-demo">
+        <summary>Demo accounts (prototype only)</summary>
+        <table>
+          <thead><tr><th>Role</th><th>Username</th><th>Password</th></tr></thead>
+          <tbody>
+            <tr><td>System Administrator</td><td>admin</td><td>admin123</td></tr>
+            <tr><td>Maintenance Engineer</td><td>engineer</td><td>engineer123</td></tr>
+            <tr><td>Field Technician</td><td>technician</td><td>tech123</td></tr>
+            <tr><td>Operations / Control Centre</td><td>operator</td><td>operator123</td></tr>
+            <tr><td>Asset Manager</td><td>assetmgr</td><td>assetmgr123</td></tr>
+          </tbody>
+        </table>
+      </details>
+    </div>
+  </div>
+</body>
+</html>

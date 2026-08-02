@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>SmartGrid PredictAI - Planner Dashboard</title>
+  <title>SmartGrid PredictAI - {{ role_label }} Dashboard</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 </head>
@@ -17,158 +17,297 @@
     {%- endif -%}
   {%- endmacro %}
 
-  <header class="page-header">
-    <div class="page-header-brand">
-      <span class="brand-mark">SG</span>
-      <div>
-        <h1>SmartGrid PredictAI</h1>
-        <p>Planner view of the latest transformer-failure, meter-theft, and feeder-outage risk scores.</p>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-mark">SG</span>
+        <div>
+          <strong>SmartGrid PredictAI</strong>
+          <span>{{ role_label }}</span>
+        </div>
       </div>
-    </div>
-  </header>
 
-  <nav class="tab-nav">
-    <button type="button" class="tab-btn" data-panel="assistant">🤖&nbsp;AI Assistant</button>
-    {% for panel in [transformer, meter, feeder] %}
-    <button type="button" class="tab-btn" data-panel="{{ panel.slug }}">
-      {{ entity_icon(panel.slug) }}{{ panel.entity_label | capitalize }}
-    </button>
-    {% endfor %}
-  </nav>
+      <nav class="side-nav">
+        <button type="button" class="tab-btn" data-panel="home">🏠&nbsp;Dashboard</button>
+        {% if "transformer" in allowed_panels %}
+        <button type="button" class="tab-btn" data-panel="transformer">📈&nbsp;Transformer Prediction</button>
+        {% endif %}
+        {% if "meter" in allowed_panels %}
+        <button type="button" class="tab-btn" data-panel="meter">🔌&nbsp;Meter Theft Detection</button>
+        {% endif %}
+        {% if "feeder" in allowed_panels %}
+        <button type="button" class="tab-btn" data-panel="feeder">⚡&nbsp;Feeder Outage Forecasting</button>
+        {% endif %}
+        {% if "assistant" in allowed_panels %}
+        <button type="button" class="tab-btn" data-panel="assistant">🤖&nbsp;AI Assistant</button>
+        {% endif %}
+        {% if "reports" in allowed_panels %}
+        <button type="button" class="tab-btn" data-panel="reports">📄&nbsp;Reports</button>
+        {% endif %}
+        {% if "settings" in allowed_panels %}
+        <button type="button" class="tab-btn" data-panel="settings">⚙️&nbsp;Settings</button>
+        {% endif %}
+      </nav>
 
-  <main>
-    <section class="panel" data-panel="assistant">
-      <h2>🤖&nbsp;PredictAI Transformer Assistant</h2>
-      <p class="assistant-sub">Ask about asset health, interpret predictions, diagnose faults, and get maintenance recommendations - rule-based over the scored fleet, no LLM.</p>
+      <div class="sidebar-user">
+        <div class="sidebar-user-name">{{ user.full_name }}</div>
+        <div class="sidebar-user-role">{{ role_label }}</div>
+        <form method="post" action="{{ url_for('logout') }}">
+          <button type="submit" class="logout-btn">🚪&nbsp;Logout</button>
+        </form>
+      </div>
+    </aside>
 
-      <div class="assistant-grid">
-        <div class="assistant-chat">
-          <div class="assistant-chat-header">
-            <span>💬 Chat</span>
-            <button type="button" id="chat-clear" title="Clear conversation">Clear</button>
+    <main>
+      <!-- ================= Dashboard (role-variant) ================= -->
+      <section class="panel" data-panel="home">
+        {% if home.kind == "administrator" %}
+        <h2>🏠&nbsp;Administrator Dashboard</h2>
+        <p class="assistant-sub">System-wide overview - user accounts, dataset freshness, and recent activity.</p>
+        <div class="stat-row">
+          <div class="stat-tile"><div class="stat-value">{{ home.user_count }}</div><div class="stat-label">User accounts</div></div>
+          <div class="stat-tile"><div class="stat-value">{{ home.dataset_stats|length }}</div><div class="stat-label">Tracked datasets</div></div>
+          <div class="stat-tile"><div class="stat-value">{{ home.activity|length }}</div><div class="stat-label">Recent activity events</div></div>
+        </div>
+        <p class="assistant-sub">Manage users, review datasets, and view the full activity log under <strong>⚙️ Settings</strong>.</p>
+
+        {% elif home.kind == "technician" %}
+        <h2>🏠&nbsp;My Assigned Transformers</h2>
+        <p class="assistant-sub">Transformers assigned to you, with the AI's current prediction and recommended actions. Submit an inspection after visiting a site.</p>
+        <div id="technician-list" class="technician-list">
+          <p class="assistant-placeholder">Loading your assignments…</p>
+        </div>
+
+        {% else %}
+        <h2>🏠&nbsp;Fleet Dashboard</h2>
+        <p class="assistant-sub">A fleet-wide snapshot across all three models. Open a tab on the left for full detail, drill-down tables, and the 3D risk landscape.</p>
+
+        {% if transformer %}
+        <h3 class="dash-section-title">{{ entity_icon("transformer") }}Transformers</h3>
+        <div class="stat-row">
+          <div class="stat-tile"><div class="stat-value">{{ transformer.total }}</div><div class="stat-label">Total transformers</div></div>
+          <div class="stat-tile"><div class="stat-value">{{ transformer.flagged }}</div><div class="stat-label">Flagged for action</div></div>
+          <div class="stat-tile"><div class="stat-value">{{ transformer.top_tier_count }}</div><div class="stat-label">{{ transformer.top_tier_name }} tier</div></div>
+          <div class="stat-tile"><div class="stat-value">{{ transformer.avg_score }}</div><div class="stat-label">Average risk score</div></div>
+        </div>
+        {% endif %}
+
+        {% if meter %}
+        <h3 class="dash-section-title">{{ entity_icon("meter") }}Meters</h3>
+        <div class="stat-row">
+          <div class="stat-tile"><div class="stat-value">{{ meter.total }}</div><div class="stat-label">Total meters</div></div>
+          <div class="stat-tile"><div class="stat-value">{{ meter.flagged }}</div><div class="stat-label">Flagged for action</div></div>
+          <div class="stat-tile"><div class="stat-value">{{ meter.top_tier_count }}</div><div class="stat-label">{{ meter.top_tier_name }} tier</div></div>
+          <div class="stat-tile"><div class="stat-value">{{ meter.avg_score }}</div><div class="stat-label">Average anomaly score</div></div>
+        </div>
+        {% endif %}
+
+        {% if feeder %}
+        <h3 class="dash-section-title">{{ entity_icon("feeder") }}Feeders</h3>
+        <div class="stat-row">
+          <div class="stat-tile"><div class="stat-value">{{ feeder.total }}</div><div class="stat-label">Total feeders</div></div>
+          <div class="stat-tile"><div class="stat-value">{{ feeder.flagged }}</div><div class="stat-label">Flagged for action</div></div>
+          <div class="stat-tile"><div class="stat-value">{{ feeder.top_tier_count }}</div><div class="stat-label">{{ feeder.top_tier_name }} tier</div></div>
+          <div class="stat-tile"><div class="stat-value">{{ feeder.avg_score }}</div><div class="stat-label">Average outage risk score</div></div>
+        </div>
+        {% endif %}
+        {% endif %}
+      </section>
+
+      <!-- ================= AI Assistant ================= -->
+      {% if "assistant" in allowed_panels %}
+      <section class="panel" data-panel="assistant">
+        <h2>🤖&nbsp;PredictAI Transformer Assistant</h2>
+        <p class="assistant-sub">Ask about asset health, interpret predictions, diagnose faults, and get maintenance recommendations - rule-based over the scored fleet, no LLM.</p>
+
+        <div class="assistant-grid">
+          <div class="assistant-chat">
+            <div class="assistant-chat-header">
+              <span>💬 Chat</span>
+              <button type="button" id="chat-clear" title="Clear conversation">Clear</button>
+            </div>
+            <div class="chat-log" id="chat-log"></div>
+            <div class="chat-suggestions" id="chat-suggestions">
+              <button type="button" class="chat-chip">Predict T0208</button>
+              <button type="button" class="chat-chip">Health of T0208</button>
+              <button type="button" class="chat-chip">Why is T0208 high risk?</button>
+              <button type="button" class="chat-chip">Top 5 riskiest feeders</button>
+            </div>
+            <form id="chat-form">
+              <input type="text" id="chat-input" placeholder="e.g. Predict transformer T0208" autocomplete="off">
+              <button type="submit">Send</button>
+            </form>
           </div>
-          <div class="chat-log" id="chat-log"></div>
-          <div class="chat-suggestions" id="chat-suggestions">
-            <button type="button" class="chat-chip">Predict T0208</button>
-            <button type="button" class="chat-chip">Health of T0208</button>
-            <button type="button" class="chat-chip">Why is T0208 high risk?</button>
-            <button type="button" class="chat-chip">Top 5 riskiest feeders</button>
+
+          <div class="assistant-card" id="prediction-card">
+            <p class="assistant-placeholder">Ask about a specific transformer (e.g. “predict T0208”) to see its full prediction card here.</p>
           </div>
-          <form id="chat-form">
-            <input type="text" id="chat-input" placeholder="e.g. Predict transformer T0208" autocomplete="off">
-            <button type="submit">Send</button>
-          </form>
         </div>
-
-        <div class="assistant-card" id="prediction-card">
-          <p class="assistant-placeholder">Ask about a specific transformer (e.g. “predict T0208”) to see its full prediction card here.</p>
-        </div>
-      </div>
-    </section>
-
-    {% for panel in [transformer, meter, feeder] %}
-    <section class="panel" data-panel="{{ panel.slug }}">
-      <h2>{{ entity_icon(panel.slug) }}{{ panel.entity_label | capitalize }} — {{ panel.score_label }}</h2>
-
-      <div class="stat-row">
-        <div class="stat-tile">
-          <div class="stat-value">{{ panel.total }}</div>
-          <div class="stat-label">Total {{ panel.entity_label }}</div>
-        </div>
-        <div class="stat-tile">
-          <div class="stat-value">{{ panel.flagged }}</div>
-          <div class="stat-label">Flagged for action</div>
-        </div>
-        <div class="stat-tile">
-          <div class="stat-value">{{ panel.top_tier_count }}</div>
-          <div class="stat-label">{{ panel.top_tier_name }} tier</div>
-        </div>
-        <div class="stat-tile">
-          <div class="stat-value">{{ panel.avg_score }}</div>
-          <div class="stat-label">Average {{ panel.score_label | lower }}</div>
-        </div>
-      </div>
-
-      <div class="content-grid">
-        <div class="chart-wrap">{{ panel.chart_html | safe }}</div>
-
-        <div class="table-wrap">
-          <table class="score-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>{{ panel.score_label }}</th>
-                <th>Tier</th>
-                {% if panel.has_reasons %}<th>Why</th>{% endif %}
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in panel.top_rows %}
-              <tr>
-                <td>{{ row.id }}</td>
-                <td>{{ "%.1f"|format(row.score) }}</td>
-                <td>
-                  <span class="tier-badge">
-                    <span class="tier-dot" style="background: {{ panel.tier_color_map[row.tier] }}"></span>
-                    {{ row.tier | capitalize }}
-                  </span>
-                </td>
-                {% if panel.has_reasons %}<td class="reason-cell">{{ row.reasons }}</td>{% endif %}
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {% if panel.landscape_html %}
-      <div class="landscape-wrap">
-        <h3>3D risk landscape</h3>
-        <p class="landscape-caption">{{ panel.landscape_caption }}</p>
-        {{ panel.landscape_html | safe }}
-      </div>
+      </section>
       {% endif %}
-    </section>
-    {% endfor %}
-  </main>
 
-  <footer>
-    Reads data/transformer_risk_scores.csv, data/meter_theft_scores.csv, and data/feeder_outage_scores.csv — regenerate with
-    <code>python3 models/failure_prediction.py</code>, <code>python3 models/theft_detection.py</code>, and
-    <code>python3 models/outage_forecasting.py</code> (in that order — outage forecasting depends on the failure model's output).
-  </footer>
+      <!-- ================= Transformer / Meter / Feeder ================= -->
+      {% for panel in [transformer, meter, feeder] %}
+      {% if panel %}
+      <section class="panel" data-panel="{{ panel.slug }}">
+        <h2>{{ entity_icon(panel.slug) }}{{ panel.entity_label | capitalize }} — {{ panel.score_label }}</h2>
+
+        <div class="stat-row">
+          <div class="stat-tile">
+            <div class="stat-value">{{ panel.total }}</div>
+            <div class="stat-label">Total {{ panel.entity_label }}</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-value">{{ panel.flagged }}</div>
+            <div class="stat-label">Flagged for action</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-value">{{ panel.top_tier_count }}</div>
+            <div class="stat-label">{{ panel.top_tier_name }} tier</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-value">{{ panel.avg_score }}</div>
+            <div class="stat-label">Average {{ panel.score_label | lower }}</div>
+          </div>
+        </div>
+
+        <div class="content-grid">
+          <div class="chart-wrap">{{ panel.chart_html | safe }}</div>
+
+          <div class="table-wrap">
+            <table class="score-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>{{ panel.score_label }}</th>
+                  <th>Tier</th>
+                  {% if panel.has_reasons %}<th>Why</th>{% endif %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in panel.top_rows %}
+                <tr>
+                  <td>{{ row.id }}</td>
+                  <td>{{ "%.1f"|format(row.score) }}</td>
+                  <td>
+                    <span class="tier-badge">
+                      <span class="tier-dot" style="background: {{ panel.tier_color_map[row.tier] }}"></span>
+                      {{ row.tier | capitalize }}
+                    </span>
+                  </td>
+                  {% if panel.has_reasons %}<td class="reason-cell">{{ row.reasons }}</td>{% endif %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {% if panel.landscape_html %}
+        <div class="landscape-wrap">
+          <h3>3D risk landscape</h3>
+          <p class="landscape-caption">{{ panel.landscape_caption }}</p>
+          {{ panel.landscape_html | safe }}
+        </div>
+        {% endif %}
+      </section>
+      {% endif %}
+      {% endfor %}
+
+      <!-- ================= Reports ================= -->
+      {% if "reports" in allowed_panels %}
+      <section class="panel" data-panel="reports">
+        <h2>📄&nbsp;Maintenance Reports</h2>
+        <p class="assistant-sub">Per-transformer PDF reports generated from the AI Assistant tab. Generate a new one from a transformer's prediction card.</p>
+        <div id="reports-list" class="technician-list">
+          <p class="assistant-placeholder">Loading reports…</p>
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- ================= Settings (administrator) ================= -->
+      {% if "settings" in allowed_panels %}
+      <section class="panel" data-panel="settings">
+        <h2>⚙️&nbsp;Settings</h2>
+
+        <h3 class="dash-section-title">Users</h3>
+        <div id="users-table-wrap">
+          <p class="assistant-placeholder">Loading users…</p>
+        </div>
+
+        <button type="button" id="new-user-toggle" class="assistant-download" style="border:none;background:none;cursor:pointer;padding:0;">+ Add user</button>
+        <form id="new-user-form" class="settings-form" hidden>
+          <label>Username <input type="text" name="username" required></label>
+          <label>Full name <input type="text" name="full_name" required></label>
+          <label>Password <input type="password" name="password" required></label>
+          <label>Role
+            <select name="role">
+              {% for r in ["administrator", "engineer", "technician", "operator", "asset_manager"] %}
+              <option value="{{ r }}">{{ r.replace("_", " ") | title }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <button type="submit">Create user</button>
+          <span id="new-user-error" class="login-error" hidden></span>
+        </form>
+
+        <h3 class="dash-section-title">Datasets</h3>
+        <table class="score-table">
+          <thead><tr><th>Dataset</th><th>Rows</th><th>Last updated</th></tr></thead>
+          <tbody>
+            {% for ds in home.dataset_stats %}
+            <tr>
+              <td>{{ ds.label }}</td>
+              <td>{{ "{:,}".format(ds.rows) if ds.rows is not none else "missing" }}</td>
+              <td>{{ ds.modified or "—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="assistant-sub">Regenerate from the repo root: <code>python data/generate_data.py</code>, then re-run the three model scripts.</p>
+
+        <h3 class="dash-section-title">AI Model</h3>
+        <p class="assistant-sub">Failure prediction, theft detection, and outage forecasting models are trained via <code>models/*.py</code>.</p>
+        <button type="button" class="assistant-actions" disabled title="Coming soon" style="opacity:0.5; cursor:not-allowed;">🔁 Retrain AI model (coming soon)</button>
+
+        <h3 class="dash-section-title">Activity Log</h3>
+        <table class="score-table">
+          <thead><tr><th>When</th><th>User</th><th>Action</th></tr></thead>
+          <tbody>
+            {% for a in home.activity %}
+            <tr>
+              <td>{{ a.created_at }}</td>
+              <td>{{ a.username }}</td>
+              <td>{{ a.action }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      {% endif %}
+    </main>
+  </div>
 
   <script>
-    // All three panels render normally above (so Plotly measures real,
-    // visible containers) - only after that do we hide two of them.
-    // Switching later just toggles display and asks Plotly to re-measure,
-    // it doesn't re-render from scratch.
+    // All panels render normally above (so Plotly measures real, visible
+    // containers) - only after that do we hide the ones that aren't
+    // active. Switching later just toggles display and asks Plotly to
+    // re-measure, it doesn't re-render from scratch.
     (function () {
       var buttons = document.querySelectorAll(".tab-btn");
       var panels = document.querySelectorAll("section.panel");
-      var ACCENTS = { assistant: "#2a78d6", transformer: "#2a78d6", meter: "#eb6834", feeder: "#1baf7a" };
 
       function showPanel(slug) {
         panels.forEach(function (p) {
           p.style.display = p.dataset.panel === slug ? "" : "none";
         });
         buttons.forEach(function (b) {
-          var isActive = b.dataset.panel === slug;
-          b.classList.toggle("active", isActive);
-          // Set inline style directly rather than relying purely on a CSS
-          // class+attribute selector - sidesteps a stale-computed-style
-          // quirk seen where the accent color didn't apply on the button
-          // toggled active during the very first synchronous render pass.
-          var accent = isActive ? ACCENTS[b.dataset.panel] : "";
-          b.style.color = accent;
-          b.style.borderBottomColor = accent;
-          var icon = b.querySelector(".entity-icon");
-          if (icon) icon.style.color = accent;
+          b.classList.toggle("active", b.dataset.panel === slug);
         });
         var shown = document.querySelector('section.panel[data-panel="' + slug + '"]');
-        var plot = shown && shown.querySelector(".js-plotly-plot");
-        if (plot && window.Plotly) {
-          Plotly.Plots.resize(plot);
+        var plots = shown ? shown.querySelectorAll(".js-plotly-plot") : [];
+        if (window.Plotly) {
+          plots.forEach(function (plot) { Plotly.Plots.resize(plot); });
         }
       }
 
@@ -178,7 +317,158 @@
         });
       });
 
-      showPanel(buttons[0].dataset.panel);
+      showPanel("home");
+    })();
+
+    // ---- Reports list (admin / engineer / asset manager) ----
+    (function () {
+      var container = document.getElementById("reports-list");
+      if (!container) return;
+      fetch("/api/reports")
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.reports.length) {
+            container.innerHTML = '<p class="assistant-placeholder">No reports generated yet.</p>';
+            return;
+          }
+          container.innerHTML = data.reports.map(function (r) {
+            return '<div class="technician-card"><div><strong>' + r.filename + '</strong>' +
+              '<div class="assistant-meta">' + r.modified + '</div></div>' +
+              '<a class="assistant-download" href="' + r.url + '">⬇ Download</a></div>';
+          }).join("");
+        })
+        .catch(function () { container.textContent = "Could not load reports."; });
+    })();
+
+    // ---- Technician: assigned transformers + inspection submission ----
+    (function () {
+      var container = document.getElementById("technician-list");
+      if (!container) return;
+
+      var STATUS_LABELS = { pending: "Pending", inspected: "Inspected", needs_followup: "Needs follow-up" };
+      var TIER_COLORS = { low: "#0ca30c", moderate: "#fab219", elevated: "#ec835a", critical: "#d03b3b" };
+
+      function load() {
+        fetch("/api/technician/assignments")
+          .then(function (r) { return r.json(); })
+          .then(function (data) { render(data.transformers); })
+          .catch(function () { container.textContent = "Could not load your assignments."; });
+      }
+
+      function render(items) {
+        if (!items.length) {
+          container.innerHTML = '<p class="assistant-placeholder">No transformers assigned to you yet.</p>';
+          return;
+        }
+        container.innerHTML = "";
+        items.forEach(function (item) {
+          var card = document.createElement("div");
+          card.className = "technician-card technician-card-block";
+          var color = TIER_COLORS[item.risk_tier] || "#52514e";
+          var lastLine = item.last_inspection
+            ? "Last inspection: " + STATUS_LABELS[item.last_inspection.status] + " on " + item.last_inspection.created_at.slice(0, 10) + " by " + item.last_inspection.technician_name
+            : "No inspection submitted yet.";
+          card.innerHTML =
+            '<div class="technician-card-head">' +
+              "<strong>" + item.id + "</strong> - " + item.location +
+              ' <span class="assistant-tag" style="background:' + color + '">' + item.risk_tier.toUpperCase() + "</span>" +
+            "</div>" +
+            '<div class="assistant-meta">Health score ' + item.health_score.toFixed(0) + "% · Predicted failure: " + item.predicted_failure_mode + "</div>" +
+            '<div class="assistant-meta">' + lastLine + "</div>" +
+            '<div class="assistant-reco-label">Recommendations</div>' +
+            '<ul class="assistant-check-list">' + item.recommendations.map(function (a) { return "<li>" + a + "</li>"; }).join("") + "</ul>" +
+            '<button type="button" class="inspect-toggle">Update inspection</button>' +
+            '<form class="inspection-form" hidden enctype="multipart/form-data">' +
+              '<input type="hidden" name="transformer_id" value="' + item.id + '">' +
+              "<label>Status" +
+                '<select name="status">' +
+                  '<option value="inspected">Inspected</option>' +
+                  '<option value="needs_followup">Needs follow-up</option>' +
+                  '<option value="pending">Pending</option>' +
+                "</select>" +
+              "</label>" +
+              '<label>Notes <textarea name="notes" rows="2"></textarea></label>' +
+              '<label>Photo (optional) <input type="file" name="photo" accept="image/*"></label>' +
+              '<button type="submit">Submit inspection</button>' +
+              '<span class="inspect-status"></span>' +
+            "</form>";
+
+          var toggleBtn = card.querySelector(".inspect-toggle");
+          var form = card.querySelector(".inspection-form");
+          toggleBtn.addEventListener("click", function () { form.hidden = !form.hidden; });
+
+          form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            var statusEl = form.querySelector(".inspect-status");
+            statusEl.textContent = "Submitting…";
+            fetch("/api/technician/inspection", { method: "POST", body: new FormData(form) })
+              .then(function (r) { return r.json(); })
+              .then(function (data) {
+                if (data.error) { statusEl.textContent = data.error; return; }
+                statusEl.textContent = "Saved.";
+                setTimeout(load, 600);
+              })
+              .catch(function () { statusEl.textContent = "Something went wrong."; });
+          });
+
+          container.appendChild(card);
+        });
+      }
+
+      load();
+    })();
+
+    // ---- Admin: user management ----
+    (function () {
+      var tableWrap = document.getElementById("users-table-wrap");
+      if (!tableWrap) return;
+      var toggleBtn = document.getElementById("new-user-toggle");
+      var form = document.getElementById("new-user-form");
+      var errorEl = document.getElementById("new-user-error");
+
+      function load() {
+        fetch("/api/admin/users")
+          .then(function (r) { return r.json(); })
+          .then(function (data) { render(data.users, data.role_labels); })
+          .catch(function () { tableWrap.textContent = "Could not load users."; });
+      }
+
+      function render(users, roleLabels) {
+        var rowsHtml = users.map(function (u) {
+          return "<tr><td>" + u.username + "</td><td>" + u.full_name + "</td><td>" +
+            (roleLabels[u.role] || u.role) + "</td><td>" + (u.is_active ? "Active" : "Disabled") + "</td></tr>";
+        }).join("");
+        tableWrap.innerHTML =
+          '<table class="score-table"><thead><tr><th>Username</th><th>Full name</th><th>Role</th><th>Status</th></tr></thead>' +
+          "<tbody>" + rowsHtml + "</tbody></table>";
+      }
+
+      toggleBtn.addEventListener("click", function () { form.hidden = !form.hidden; });
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        errorEl.hidden = true;
+        var payload = Object.fromEntries(new FormData(form).entries());
+        fetch("/api/admin/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+          .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+          .then(function (result) {
+            if (!result.ok) {
+              errorEl.textContent = result.data.error || "Could not create user.";
+              errorEl.hidden = false;
+              return;
+            }
+            form.reset();
+            form.hidden = true;
+            load();
+          })
+          .catch(function () { errorEl.textContent = "Something went wrong."; errorEl.hidden = false; });
+      });
+
+      load();
     })();
 
     // AI Assistant: rule-based chat (no LLM/network call beyond our own
@@ -191,6 +481,7 @@
       var form = document.getElementById("chat-form");
       var input = document.getElementById("chat-input");
       var card = document.getElementById("prediction-card");
+      if (!form || !card) return;
 
       var TIER_COLORS = { low: "#0ca30c", moderate: "#fab219", elevated: "#ec835a", critical: "#d03b3b" };
       var currentFocusId = null;
