@@ -16,7 +16,7 @@ import pandas as pd
 RANDOM_SEED = 42
 N_TRANSFORMERS = 3000
 N_METERS = 10000
-N_FEEDERS = 1500
+N_FEEDERS = 500
 
 # Asset-metadata/maintenance-history constants. REFERENCE_DATE is pinned
 # rather than datetime.now() so regenerating this script in a later calendar

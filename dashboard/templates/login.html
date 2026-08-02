@@ -6,6 +6,23 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="login-body">
+  <svg class="login-bg-cables" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path class="cable-wire" d="M -50,130 C 320,50 780,210 1650,100"/>
+    <path class="cable-wire" d="M -50,330 C 420,420 900,230 1650,340"/>
+    <path class="cable-wire" d="M -50,560 C 380,490 860,640 1650,540"/>
+    <path class="cable-wire" d="M -50,760 C 520,700 1020,820 1650,730"/>
+
+    <path class="cable-current" d="M -50,130 C 320,50 780,210 1650,100"/>
+    <path class="cable-current alt" d="M -50,330 C 420,420 900,230 1650,340"/>
+    <path class="cable-current" d="M -50,560 C 380,490 860,640 1650,540"/>
+    <path class="cable-current alt" d="M -50,760 C 520,700 1020,820 1650,730"/>
+
+    <circle class="cable-node" cx="320" cy="50" r="4"/>
+    <circle class="cable-node" cx="900" cy="230" r="4"/>
+    <circle class="cable-node" cx="1020" cy="820" r="4"/>
+    <circle class="cable-node" cx="380" cy="490" r="4"/>
+  </svg>
+
   <div class="login-shell">
     <div class="login-hero">
       <svg class="login-hero-art" viewBox="0 0 420 300" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -70,9 +87,9 @@
         </ul>
 
         <div class="login-hero-stats">
-          <div><strong>3,000</strong><span>Transformers</span></div>
-          <div><strong>10,000</strong><span>Meters</span></div>
-          <div><strong>1,500</strong><span>Feeders</span></div>
+          <div><strong>{{ "{:,}".format(fleet.transformers) if fleet.transformers is not none else "—" }}</strong><span>Transformers</span></div>
+          <div><strong>{{ "{:,}".format(fleet.meters) if fleet.meters is not none else "—" }}</strong><span>Meters</span></div>
+          <div><strong>{{ "{:,}".format(fleet.feeders) if fleet.feeders is not none else "—" }}</strong><span>Feeders</span></div>
         </div>
         <p class="login-hero-footnote">Serving Tzaneen and the Mopani District, Limpopo</p>
       </div>

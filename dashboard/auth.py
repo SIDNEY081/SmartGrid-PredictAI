@@ -284,6 +284,25 @@ def dataset_stats():
     return stats
 
 
+def fleet_counts():
+    """Real row counts straight off disk - used on the (unauthenticated)
+    login page, so the fleet-size stats there track data/generate_data.py's
+    actual output instead of a number typed into the template. None for a
+    file that hasn't been generated yet."""
+
+    def count(filename):
+        path = ROOT / "data" / filename
+        if not path.exists():
+            return None
+        return sum(1 for _ in open(path, encoding="utf-8")) - 1
+
+    return {
+        "transformers": count("transformer_data.csv"),
+        "meters": count("meter_data.csv"),
+        "feeders": count("feeder_data.csv"),
+    }
+
+
 # --------------------------------------------------------------------------
 # Flask session helpers / decorators
 # --------------------------------------------------------------------------

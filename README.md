@@ -14,7 +14,7 @@ SmartGrid-PredictAI/
                                     #     previous_failures, last_serviced_date, last_oil_replacement_date
     transformer_history.csv        # 12 months of oil_quality_index/temperature_rise_c/load_factor per transformer
     meter_data.csv                 # 10,000 meters, ~10% is_theft rate
-    feeder_data.csv                # 1,500 feeders, ~13% outage_within_7_days rate
+    feeder_data.csv                # 500 feeders, ~13% outage_within_7_days rate
     transformer_failure_scores.csv # notebook output: failure_score + tier per transformer
     meter_anomaly_scores.csv       # notebook output: anomaly_score + tier per meter
     transformer_risk_scores.csv    # script output: risk_score + tier per transformer

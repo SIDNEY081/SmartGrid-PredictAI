@@ -213,7 +213,8 @@ def login():
             return redirect(next_path)
 
     return render_template(
-        "login.html", error=error, role_labels=auth.ROLE_LABELS, next_path=request.args.get("next", "")
+        "login.html", error=error, role_labels=auth.ROLE_LABELS, next_path=request.args.get("next", ""),
+        fleet=auth.fleet_counts(),
     )
 
 
