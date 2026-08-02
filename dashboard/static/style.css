@@ -21,16 +21,39 @@
 body {
   margin: 0;
   padding: 0;
-  background:
-    radial-gradient(1200px 320px at 12% -10%, rgba(42, 120, 214, 0.10), transparent),
-    radial-gradient(900px 260px at 100% 0%, rgba(27, 175, 122, 0.08), transparent),
-    var(--page-plane);
+  min-height: 100vh;
+  /* Eskom-blue diagonal wash. Every panel/tile/table/chart below sets its
+     own opaque surface color (--surface-1), so this only fills the space
+     around them - it never shows through a chart. */
+  background: linear-gradient(135deg, #eaf2fc 0%, #f9f9f7 38%, #f9f9f7 62%, #e3edfb 100%) fixed;
   color: var(--text-primary);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 header.page-header {
+  position: relative;
+  overflow: hidden;
   padding: 30px 32px 18px;
+  border-radius: 0 0 18px 18px;
+}
+
+header.page-header::before {
+  content: "";
+  position: absolute;
+  top: -140%;
+  right: -8%;
+  width: 34%;
+  height: 380%;
+  background: linear-gradient(135deg, var(--brand-1) 0%, #5aa0e6 55%, rgba(90, 160, 230, 0) 100%);
+  clip-path: polygon(35% 0%, 100% 0%, 100% 100%, 0% 100%);
+  opacity: 0.14;
+  pointer-events: none;
+  z-index: 0;
+}
+
+header.page-header > * {
+  position: relative;
+  z-index: 1;
 }
 
 .page-header-brand {

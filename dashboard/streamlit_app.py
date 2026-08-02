@@ -52,7 +52,24 @@ CONTRIB_UP, CONTRIB_DOWN = "#e34948", "#2a78d6"  # pushes score up / down
 st.markdown(
     """
     <style>
-    .sg-header { display:flex; align-items:center; gap:14px; margin-bottom: 6px; }
+    /* Eskom-blue diagonal wash behind the whole app. Every chart, tile, and
+    card below sets its own opaque surface color (#fcfcfb), so this never
+    shows through data - it only fills the space around it. */
+    [data-testid="stAppViewContainer"], .stApp {
+        background: linear-gradient(135deg, #eaf2fc 0%, #ffffff 38%, #ffffff 62%, #e3edfb 100%);
+        background-attachment: fixed;
+    }
+    .sg-header {
+        display:flex; align-items:center; gap:14px; margin-bottom: 6px;
+        position:relative; overflow:hidden; padding:10px 14px; border-radius:14px;
+    }
+    .sg-header::before {
+        content:""; position:absolute; top:-120%; right:-10%; width:42%; height:340%;
+        background: linear-gradient(135deg, #2a78d6 0%, #5aa0e6 55%, rgba(90,160,230,0) 100%);
+        clip-path: polygon(35% 0%, 100% 0%, 100% 100%, 0% 100%);
+        opacity:0.14; pointer-events:none; z-index:0;
+    }
+    .sg-header > * { position:relative; z-index:1; }
     .sg-brand-mark {
         width:44px; height:44px; border-radius:12px; flex-shrink:0;
         display:flex; align-items:center; justify-content:center;
@@ -236,8 +253,8 @@ def tier_bar_chart(scores_df, tier_col):
     fig.update_layout(
         height=240,
         margin=dict(l=30, r=10, t=10, b=30),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="#fcfcfb",
+        plot_bgcolor="#fcfcfb",
         showlegend=False,
         font=CHART_FONT,
         hoverlabel=dict(bgcolor="#232220", font_color="#fff", bordercolor="#232220"),
@@ -265,8 +282,8 @@ def importance_bar_chart(importance_df, accent):
     fig.update_layout(
         height=260,
         margin=dict(l=10, r=30, t=10, b=30),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="#fcfcfb",
+        plot_bgcolor="#fcfcfb",
         showlegend=False,
         font=CHART_FONT,
         hoverlabel=dict(bgcolor="#232220", font_color="#fff", bordercolor="#232220"),
@@ -294,8 +311,8 @@ def contribution_bar_chart(contributions_row):
     fig.update_layout(
         height=240,
         margin=dict(l=10, r=30, t=10, b=30),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="#fcfcfb",
+        plot_bgcolor="#fcfcfb",
         showlegend=False,
         font=CHART_FONT,
         hoverlabel=dict(bgcolor="#232220", font_color="#fff", bordercolor="#232220"),
@@ -334,13 +351,13 @@ def risk_landscape_3d(df, x_col, y_col, z_col, tier_col, id_col, labels, key):
     fig.update_layout(
         height=420,
         margin=dict(l=0, r=0, t=10, b=0),
-        paper_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="#fcfcfb",
         font=CHART_FONT,
         legend=dict(orientation="h", yanchor="bottom", y=1, x=0),
         scene=dict(
-            xaxis=dict(title=labels[0], backgroundcolor="rgba(0,0,0,0)", gridcolor="#e9e8e2"),
-            yaxis=dict(title=labels[1], backgroundcolor="rgba(0,0,0,0)", gridcolor="#e9e8e2"),
-            zaxis=dict(title=labels[2], backgroundcolor="rgba(0,0,0,0)", gridcolor="#e9e8e2"),
+            xaxis=dict(title=labels[0], backgroundcolor="#fcfcfb", gridcolor="#e9e8e2"),
+            yaxis=dict(title=labels[1], backgroundcolor="#fcfcfb", gridcolor="#e9e8e2"),
+            zaxis=dict(title=labels[2], backgroundcolor="#fcfcfb", gridcolor="#e9e8e2"),
             camera=dict(eye=dict(x=1.4, y=1.4, z=0.9)),
         ),
     )
@@ -437,7 +454,7 @@ def render_history(row):
         )
         fig.update_layout(
             height=180, margin=dict(l=10, r=10, t=24, b=24),
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="#fcfcfb", plot_bgcolor="#fcfcfb",
             font=CHART_FONT, showlegend=False, title=dict(text=label, font=dict(size=12)),
             xaxis=dict(showgrid=False, title="Month"),
             yaxis=dict(showgrid=True, gridcolor="#e9e8e2", zeroline=False),
@@ -478,7 +495,7 @@ def render_compare(row):
     ])
     fig.update_layout(
         barmode="group", height=260, margin=dict(l=10, r=10, t=30, b=30),
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=CHART_FONT,
+        paper_bgcolor="#fcfcfb", plot_bgcolor="#fcfcfb", font=CHART_FONT,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
         yaxis=dict(showgrid=True, gridcolor="#e9e8e2", range=[0, 100]),
     )
