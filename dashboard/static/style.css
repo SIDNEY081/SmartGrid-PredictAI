@@ -817,10 +817,17 @@ table.compare-table th {
   overflow-x: hidden;
 }
 
-/* Power-up sequence: the grid starts dark, current fades in and flows
-   along each cable, and light bulbs switch on as it reaches them - pure
-   CSS/SVG choreography (animation-delay per element), no image asset, no
-   JS. Sits behind the shell (z-index 0 vs 1) so it only ever shows through
+/* Blackout, then power restoration: nothing happens for the first ~1s
+   (a real outage, not a decorative loop), then each cable's current
+   visibly travels the length of the wire once (a stroke-dashoffset reveal
+   using the path's normalized pathLength="100", not a marching-dash
+   texture), and the light bulbs along it switch on - with a couple of
+   realistic power-flicker stutters, not a smooth fade - right as the
+   current reaches them. Everything then holds at a steady lit state with
+   only a slow, subtle ambient flicker, so the section reads as "the grid
+   is back up," not as a looping intro animation. Pure CSS/SVG
+   choreography (animation-delay per element), no image asset, no JS.
+   Sits behind the shell (z-index 0 vs 1) so it only ever shows through
    the margins, never competing with the card or hero copy. */
 .login-bg-cables {
   position: fixed;
@@ -833,56 +840,60 @@ table.compare-table th {
 
 .cable-wire {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.07);
+  stroke: rgba(255, 255, 255, 0.06);
   stroke-width: 1.5;
 }
 
 .cable-current {
+  --glow: rgba(27, 175, 122, 0.9);
+  --glow-dim: rgba(27, 175, 122, 0.5);
   fill: none;
   stroke: var(--brand-2);
   stroke-width: 2.5;
   stroke-linecap: round;
-  stroke-dasharray: 2 26;
-  filter: drop-shadow(0 0 5px rgba(27, 175, 122, 0.9));
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
   opacity: 0;
   animation:
-    cable-power-in 1s ease-out forwards,
-    cable-flow 3.4s linear infinite;
-  animation-delay: var(--flow-delay, 0s), var(--flow-delay, 0s);
+    cable-restore 1s cubic-bezier(0.2, 0.7, 0.3, 1) forwards,
+    cable-hum 4.5s ease-in-out infinite;
+  animation-delay: var(--flow-delay, 0s), calc(var(--flow-delay, 0s) + 1s);
 }
 
 .cable-current.alt {
+  --glow: rgba(42, 120, 214, 0.9);
+  --glow-dim: rgba(42, 120, 214, 0.5);
   stroke: var(--brand-1);
-  filter: drop-shadow(0 0 5px rgba(42, 120, 214, 0.9));
-  animation-duration: 1s, 4.4s;
-  animation-direction: normal, reverse;
 }
 
-@keyframes cable-power-in {
-  to { opacity: 1; }
+@keyframes cable-restore {
+  0% { opacity: 0; stroke-dashoffset: 100; filter: drop-shadow(0 0 0 transparent); }
+  2% { opacity: 1; }
+  100% { opacity: 1; stroke-dashoffset: 0; filter: drop-shadow(0 0 6px var(--glow)); }
 }
 
-@keyframes cable-flow {
-  to { stroke-dashoffset: -280; }
+@keyframes cable-hum {
+  0%, 100% { filter: drop-shadow(0 0 6px var(--glow)); }
+  50% { filter: drop-shadow(0 0 3px var(--glow-dim)); }
 }
 
-/* Bulbs start dark (barely-visible glass), then switch on in sequence as
-   the current reaches them, and settle into a slow steady flicker so the
-   scene reads as "live" rather than finished animating. */
+/* Bulbs sit dark and dead through the blackout, then - right as the
+   current sweep reaches their position - stutter through a couple of
+   power-restoring flickers before holding fully lit. */
 .bulb-glass {
-  fill: rgba(255, 214, 84, 0.05);
-  stroke: rgba(255, 214, 84, 0.18);
+  fill: rgba(255, 214, 84, 0.04);
+  stroke: rgba(255, 214, 84, 0.14);
   stroke-width: 1;
-  opacity: 0.5;
-  animation: bulb-on 0.7s ease-out forwards, bulb-flicker 3.6s ease-in-out infinite;
-  animation-delay: var(--bulb-delay, 0s), calc(var(--bulb-delay, 0s) + 0.7s);
+  opacity: 0.35;
+  animation: bulb-restore 0.8s linear forwards, bulb-idle 4s ease-in-out infinite;
+  animation-delay: var(--bulb-delay, 0s), calc(var(--bulb-delay, 0s) + 0.8s);
 }
 
 .bulb-filament {
   fill: none;
-  stroke: rgba(255, 214, 84, 0.25);
+  stroke: rgba(255, 214, 84, 0.2);
   stroke-width: 1.2;
-  animation: bulb-filament-on 0.7s ease-out forwards;
+  animation: bulb-filament-on 0.8s ease-out forwards;
   animation-delay: var(--bulb-delay, 0s);
 }
 
@@ -890,12 +901,27 @@ table.compare-table th {
   fill: rgba(255, 255, 255, 0.12);
 }
 
-@keyframes bulb-on {
-  to {
-    fill: rgba(255, 214, 84, 0.85);
-    stroke: rgba(255, 230, 140, 0.95);
-    opacity: 1;
-    filter: drop-shadow(0 0 10px rgba(255, 200, 60, 0.85)) drop-shadow(0 0 22px rgba(255, 170, 40, 0.5));
+@keyframes bulb-restore {
+  0% {
+    fill: rgba(255, 214, 84, 0.04); stroke: rgba(255, 214, 84, 0.14);
+    opacity: 0.35; filter: none;
+  }
+  18% {
+    fill: rgba(255, 214, 84, 0.55); opacity: 0.85;
+    filter: drop-shadow(0 0 6px rgba(255, 190, 50, 0.55));
+  }
+  30% { fill: rgba(255, 214, 84, 0.1); opacity: 0.4; filter: none; }
+  46% {
+    fill: rgba(255, 214, 84, 0.9); opacity: 1;
+    filter: drop-shadow(0 0 10px rgba(255, 200, 60, 0.85)) drop-shadow(0 0 20px rgba(255, 170, 40, 0.5));
+  }
+  58% {
+    fill: rgba(255, 214, 84, 0.35); opacity: 0.6;
+    filter: drop-shadow(0 0 4px rgba(255, 190, 50, 0.4));
+  }
+  74%, 100% {
+    fill: rgba(255, 214, 84, 0.9); stroke: rgba(255, 230, 140, 0.95); opacity: 1;
+    filter: drop-shadow(0 0 10px rgba(255, 200, 60, 0.85)) drop-shadow(0 0 20px rgba(255, 170, 40, 0.5));
   }
 }
 
@@ -903,19 +929,21 @@ table.compare-table th {
   to { stroke: rgba(120, 60, 0, 0.9); }
 }
 
-@keyframes bulb-flicker {
-  0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 200, 60, 0.85)) drop-shadow(0 0 22px rgba(255, 170, 40, 0.5)); }
-  50% { filter: drop-shadow(0 0 7px rgba(255, 200, 60, 0.65)) drop-shadow(0 0 16px rgba(255, 170, 40, 0.35)); }
+@keyframes bulb-idle {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 200, 60, 0.85)) drop-shadow(0 0 20px rgba(255, 170, 40, 0.5)); }
+  50% { filter: drop-shadow(0 0 8px rgba(255, 200, 60, 0.7)) drop-shadow(0 0 16px rgba(255, 170, 40, 0.4)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .cable-current {
     animation: none;
     opacity: 1;
+    stroke-dashoffset: 0;
+    filter: drop-shadow(0 0 6px var(--glow));
   }
   .bulb-glass, .bulb-filament {
     animation: none;
-    fill: rgba(255, 214, 84, 0.85);
+    fill: rgba(255, 214, 84, 0.9);
     stroke: rgba(255, 230, 140, 0.95);
     opacity: 1;
     filter: drop-shadow(0 0 10px rgba(255, 200, 60, 0.85));
