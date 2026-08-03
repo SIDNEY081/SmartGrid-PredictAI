@@ -49,13 +49,20 @@ auth.init_db()
 # the actual access boundary.
 PANEL_ROLES = {
     "home": set(auth.ROLES),
-    "assistant": {"administrator", "engineer"},
+    "assistant": {"administrator", "engineer", "operator", "asset_manager"},
     "transformer": {"administrator", "engineer", "operator", "asset_manager"},
     "meter": {"administrator", "engineer", "operator", "asset_manager"},
     "feeder": {"administrator", "engineer", "operator", "asset_manager"},
-    "reports": {"administrator", "engineer", "asset_manager"},
+    "reports": {"administrator", "engineer", "operator", "asset_manager"},
     "settings": {"administrator"},
 }
+
+# Roles allowed to generate a new PDF report - narrower than who can view the
+# Reports panel or ask the AI Assistant questions: producing a report is a
+# write action (a file on disk), viewing one isn't. Shared by the REST
+# endpoint below and by the AI Assistant's tool filtering, so the chat
+# interface can't be used as a side door around the same restriction.
+REPORT_GENERATION_ROLES = ("administrator", "engineer")
 
 # Status palette (good -> warning -> serious -> critical), fixed order,
 # never reused for anything else on the page.
@@ -328,6 +335,9 @@ causes a humming noise?"), use lookup_engineering_reference rather than answerin
 general knowledge, so answers stay consistent with this platform's reference material.
 - If a question is ambiguous about which asset it means, ask a brief clarifying \
 question rather than guessing.
+- If someone asks you to generate a PDF maintenance report and you don't have a tool \
+for it, that's a permissions limit, not a missing feature - tell them report \
+generation is restricted to engineers and administrators, and to ask one of them.
 """
 
 _anthropic_client = None
@@ -341,7 +351,7 @@ def get_anthropic_client():
 
 
 @app.route("/api/chat", methods=["POST"])
-@auth.roles_required("administrator", "engineer")
+@auth.roles_required(*PANEL_ROLES["assistant"])
 def chat():
     message = (request.get_json(silent=True) or {}).get("message", "").strip()
     if not message:
@@ -351,12 +361,21 @@ def chat():
     history = auth.get_chat_history(user["id"], limit=20)
     history.append({"role": "user", "content": message})
 
+    # Same restriction as the /report REST endpoint: only administrator/
+    # engineer can generate a PDF, whether they ask for it by clicking a
+    # button or by asking the chat assistant. Dropping the tool from the
+    # list (rather than trusting the model to decline) means the model
+    # can't be talked into calling it either.
+    tools = ai_tools.ALL_TOOLS
+    if user["role"] not in REPORT_GENERATION_ROLES:
+        tools = [t for t in tools if t.name != "generate_maintenance_report"]
+
     try:
         runner = get_anthropic_client().beta.messages.tool_runner(
             model="claude-sonnet-5",
             max_tokens=1536,
             system=AI_SYSTEM_PROMPT,
-            tools=ai_tools.ALL_TOOLS,
+            tools=tools,
             output_config={"effort": "medium"},
             messages=history,
         )
@@ -406,7 +425,7 @@ def chat():
 
 
 @app.route("/api/chat/reset", methods=["POST"])
-@auth.roles_required("administrator", "engineer")
+@auth.roles_required(*PANEL_ROLES["assistant"])
 def chat_reset():
     auth.clear_chat_history(auth.current_user()["id"])
     return jsonify({"ok": True})
@@ -421,8 +440,10 @@ def chat_reset():
 def _load_transformer_full():
     scores = pd.read_csv(DATA / "transformer_risk_scores.csv")
     raw_cols = [
-        "transformer_id", "age_years", "load_factor", "maintenance_score",
-        "oil_quality_index", "temperature_rise_c", "location", "capacity_kva",
+        "transformer_id", "transformer_name", "cnc", "substation_id",
+        "substation_name", "pole_id", "gps_lat", "gps_lon",
+        "age_years", "load_factor", "maintenance_score",
+        "oil_quality_index", "temperature_rise_c", "capacity_kva",
         "installation_year", "previous_failures", "last_serviced_date",
         "last_oil_replacement_date",
     ]
@@ -541,7 +562,7 @@ def transformer_compare(transformer_id, other_id):
 
 
 @app.route("/api/transformer/<transformer_id>/report", methods=["POST"])
-@auth.roles_required("administrator", "engineer")
+@auth.roles_required(*REPORT_GENERATION_ROLES)
 def transformer_report(transformer_id):
     try:
         path = report.generate_pdf_report(transformer_id, DATA)
@@ -552,7 +573,7 @@ def transformer_report(transformer_id):
 
 
 @app.route("/api/reports")
-@auth.roles_required("administrator", "engineer", "asset_manager")
+@auth.roles_required(*PANEL_ROLES["reports"])
 def list_reports():
     REPORTS.mkdir(parents=True, exist_ok=True)
     files = sorted(REPORTS.glob("*.pdf"), key=lambda p: p.stat().st_mtime, reverse=True)
@@ -651,10 +672,38 @@ def technician_assignments():
             "health_score": round(float(row["health_score"]), 1),
             "predicted_failure_mode": row["predicted_failure_mode"],
             "recommendations": knowledge_base.MAINTENANCE_ACTIONS.get(tier, []),
-            "location": row["location"],
+            "cnc": row["cnc"],
             "last_inspection": history[0] if history else None,
         })
     return jsonify({"transformers": items})
+
+
+@app.route("/api/technician/recent-inspections")
+@auth.roles_required("technician", "administrator")
+def technician_recent_inspections():
+    user = auth.current_user()
+    technician_id = request.args.get("technician_id", type=int) if user["role"] == "administrator" else user["id"]
+    if technician_id is None:
+        return jsonify({"error": "technician_id is required for administrators"}), 400
+
+    inspections = auth.get_recent_inspections_by_technician(technician_id, days=90)
+    if not inspections:
+        return jsonify({"inspections": []})
+
+    full = _load_transformer_full()
+    by_id = full.set_index("transformer_id")
+    items = []
+    for insp in inspections:
+        row = by_id.loc[insp["transformer_id"]] if insp["transformer_id"] in by_id.index else None
+        items.append({
+            "transformer_id": insp["transformer_id"],
+            "cnc": row["cnc"] if row is not None else None,
+            "status": insp["status"],
+            "notes": insp["notes"],
+            "created_at": insp["created_at"],
+            "technician_name": insp["technician_name"],
+        })
+    return jsonify({"inspections": items})
 
 
 @app.route("/api/technician/inspection", methods=["POST"])

@@ -79,7 +79,10 @@ TRANSFORMER_ONLY_KEYWORDS = (
     "predict", "health", "recommend", "history", "find", "search", "where", "trend", "report",
 )
 
-TIER_STATUS = {"critical": "Critical", "elevated": "At Risk", "moderate": "Watch", "low": "Healthy"}
+# 3-value Healthy/Warning/Critical status now comes from the "status" column
+# models/failure_prediction.py and models/outage_forecasting.py write into
+# the scores CSVs (derived from the 4-tier risk_tier - see
+# models/failure_prediction.py's TIER_TO_STATUS).
 
 HELP_TEXT = (
     "I can answer questions about transformers, meters, and feeders. Try things like:\n"
@@ -175,13 +178,24 @@ def _load_transformer_full(data_dir):
     without either file duplicating the other's columns."""
     scores = pd.read_csv(data_dir / "transformer_risk_scores.csv")
     raw_cols = [
-        "transformer_id", "age_years", "load_factor", "maintenance_score",
-        "oil_quality_index", "temperature_rise_c", "location", "capacity_kva",
+        "transformer_id", "transformer_name", "cnc", "substation_id",
+        "substation_name", "pole_id", "gps_lat", "gps_lon",
+        "age_years", "load_factor", "maintenance_score",
+        "oil_quality_index", "temperature_rise_c", "capacity_kva",
         "installation_year", "previous_failures", "last_serviced_date",
         "last_oil_replacement_date",
     ]
     raw = pd.read_csv(data_dir / "transformer_data.csv")[raw_cols]
     return scores.merge(raw, on="transformer_id")
+
+
+def _load_feeder_full(data_dir):
+    """Same idea as _load_transformer_full: merges feeder_data.csv (raw
+    topology - cnc/substation - plus grid characteristics) with
+    feeder_outage_scores.csv (model output) on feeder_id."""
+    scores = pd.read_csv(data_dir / "feeder_outage_scores.csv")
+    raw = pd.read_csv(data_dir / "feeder_data.csv")
+    return raw.merge(scores, on="feeder_id")
 
 
 def _find_transformer_row(full, num):
@@ -235,7 +249,7 @@ def _health_reply(transformer_id, num, data_dir):
     return (
         f"{row['transformer_id']} health:\n"
         f"Health Score: {row['health_score']:.1f}/100\n"
-        f"Status: {TIER_STATUS.get(tier, tier.capitalize())}\n"
+        f"Status: {row['status']}\n"
         f"Last Serviced: {row['last_serviced_date']}\n"
         f"Last Oil Replacement: {row['last_oil_replacement_date']}\n"
         f"Next Maintenance: {row['next_maintenance_date']}\n"
@@ -285,10 +299,14 @@ def _find_reply(transformer_id, num, data_dir):
         return f"I don't see {transformer_id} in the transformer data."
     flagged = "flagged for action" if row["alert_flag"] == 1 else "not flagged"
     return (
-        f"{row['transformer_id']}:\n"
-        f"Location: {row['location']}\n"
+        f"{row['transformer_id']} ({row['transformer_name']}):\n"
+        f"CNC: {row['cnc']}\n"
+        f"Substation: {row['substation_name']}\n"
+        f"Feeder: {row['feeder_id']}\n"
+        f"Pole: {row['pole_id']} ({row['gps_lat']}, {row['gps_lon']})\n"
         f"Capacity: {row['capacity_kva']} kVA\n"
         f"Installed: {int(row['installation_year'])}\n"
+        f"Status: {row['status']}\n"
         f"Current Tier: {row['risk_tier'].capitalize()}, {flagged}"
     )
 

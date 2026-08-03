@@ -10,18 +10,19 @@ SmartGrid-PredictAI/
   data/
     generate_data.py               # builds the synthetic transformer/meter/feeder datasets below
     transformer_data.csv           # 3,000 transformers (each on a feeder), ~19% failure_within_1yr rate
-                                    #   + asset metadata: location, capacity_kva, installation_year,
+                                    #   + asset metadata: transformer_name, cnc, substation_id/name,
+                                    #     pole_id, gps_lat/lon, capacity_kva, installation_year,
                                     #     previous_failures, last_serviced_date, last_oil_replacement_date
     transformer_history.csv        # 12 months of oil_quality_index/temperature_rise_c/load_factor per transformer
     meter_data.csv                 # 10,000 meters, ~10% is_theft rate
-    feeder_data.csv                # 500 feeders, ~13% outage_within_7_days rate
+    feeder_data.csv                # 500 feeders, ~13% outage_within_7_days rate, each under one cnc/substation
     transformer_failure_scores.csv # notebook output: failure_score + tier per transformer
     meter_anomaly_scores.csv       # notebook output: anomaly_score + tier per meter
-    transformer_risk_scores.csv    # script output: risk_score + tier per transformer
+    transformer_risk_scores.csv    # script output: risk_score + tier + status per transformer
                                     #   + health_score, confidence_pct, predicted_failure_mode,
                                     #     remaining_useful_life_years, next_maintenance_date
     meter_theft_scores.csv         # script output: anomaly_score + tier per meter
-    feeder_outage_scores.csv       # script output: outage_risk_score + tier per feeder
+    feeder_outage_scores.csv       # script output: outage_risk_score + tier + status per feeder
   notebooks/
     transformer_failure_model.ipynb  # Random Forest classifier -> failure_score
     theft_detection_model.ipynb      # Isolation Forest anomaly detector -> anomaly_score
@@ -276,8 +277,8 @@ data model for them):
 - **`maintenance history of T0208`** — last serviced/oil-replacement dates,
   previous failure count, and the last 3 months of readings from
   `data/transformer_history.csv`.
-- **`find T0208`** / **`search T0208`** / **`where is T0208`** — location,
-  capacity, installation year, current tier.
+- **`find T0208`** / **`search T0208`** / **`where is T0208`** — CNC,
+  substation, feeder, pole/GPS, capacity, installation year, status, current tier.
 - **`trend for T0208`** — per-feature direction (rising/falling/stable) from
   a linear fit over `data/transformer_history.csv`'s 12 monthly readings.
 - **`compare T0208 and T0301`** — side-by-side risk/health/temperature/load.

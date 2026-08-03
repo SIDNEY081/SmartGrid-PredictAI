@@ -66,7 +66,7 @@ def get_transformer_history(transformer_id: str) -> str:
 
 @beta_tool
 def get_transformer_details(transformer_id: str) -> str:
-    """Get a transformer's asset details: location, capacity, installation year, current risk tier, and whether it's flagged for action.
+    """Get a transformer's asset details: transformer name, CNC, substation, feeder, pole id/GPS coordinates, capacity, installation year, Healthy/Warning/Critical status, current risk tier, and whether it's flagged for action.
 
     Args:
         transformer_id: The transformer's id, e.g. "T0208".
@@ -119,17 +119,25 @@ def generate_maintenance_report(transformer_id: str) -> str:
 def query_fleet(
     entity: str,
     tier: str = "",
+    status: str = "",
+    cnc: str = "",
+    substation_id: str = "",
+    feeder_id: str = "",
     high_risk_only: bool = False,
     flagged_only: bool = False,
     want_average: bool = False,
     want_reasons: bool = False,
     top_n: int = 10,
 ) -> str:
-    """Query across the whole fleet of transformers, meters, or feeders: a count, a top-N list by risk score, an average score, or the most common reasons behind a tier's risk.
+    """Query across the whole fleet of transformers, meters, or feeders: a count, a top-N list by risk score, an average score, or the most common reasons behind a tier's risk. Transformers and feeders can also be filtered by any combination of CNC, substation, feeder, and Healthy/Warning/Critical status - e.g. "CNC: Tzaneen, Feeder: F007, Status: Critical".
 
     Args:
         entity: Which asset type: "transformer", "meter", or "feeder".
         tier: Filter to one severity tier: "low", "moderate", "elevated", or "critical". Leave empty for no tier filter.
+        status: Filter to one simplified status: "Healthy", "Warning", or "Critical". Transformers and feeders only.
+        cnc: Filter to one CNC (control & network centre / regional area), e.g. "Tzaneen". Transformers and feeders only.
+        substation_id: Filter to one substation id, e.g. "SS-TZN-01". Transformers and feeders only.
+        feeder_id: Filter to one feeder id, e.g. "F007". Transformers only.
         high_risk_only: If true, filter to elevated-or-critical tier (overrides `tier`).
         flagged_only: If true, filter to only assets flagged for action.
         want_average: If true, return the average score for the filtered set instead of a list.
@@ -139,10 +147,38 @@ def query_fleet(
     entity_key = entity.strip().lower().rstrip("s")
     if entity_key not in chatbot.ENTITIES:
         return f"Unknown entity '{entity}' - must be transformer, meter, or feeder."
-    df, cfg = chatbot._load(entity_key, DATA)
+
+    active_metadata = {
+        k: v.strip() for k, v in
+        {"cnc": cnc, "substation_id": substation_id, "feeder_id": feeder_id, "status": status}.items()
+        if v.strip()
+    }
+    if active_metadata and entity_key == "meter":
+        return "Meters don't have CNC/substation/feeder/status metadata yet - only transformers and feeders."
+
+    cfg = chatbot.ENTITIES[entity_key]
+    if entity_key == "transformer":
+        df = chatbot._load_transformer_full(DATA)
+    elif entity_key == "feeder":
+        df = chatbot._load_feeder_full(DATA)
+    else:
+        df, _ = chatbot._load(entity_key, DATA)
 
     subset = df
     label_bits = [entity_key + "s"]
+    if active_metadata.get("cnc"):
+        subset = subset[subset["cnc"].str.lower() == active_metadata["cnc"].lower()]
+        label_bits.append(f"in CNC {active_metadata['cnc']}")
+    if active_metadata.get("substation_id"):
+        subset = subset[subset["substation_id"].str.lower() == active_metadata["substation_id"].lower()]
+        label_bits.append(f"in substation {active_metadata['substation_id']}")
+    if active_metadata.get("feeder_id") and "feeder_id" in subset.columns:
+        subset = subset[subset["feeder_id"].str.lower() == active_metadata["feeder_id"].lower()]
+        label_bits.append(f"on feeder {active_metadata['feeder_id']}")
+    if active_metadata.get("status") and "status" in subset.columns:
+        subset = subset[subset["status"].str.lower() == active_metadata["status"].lower()]
+        label_bits.append(f"with status {active_metadata['status']}")
+
     if high_risk_only:
         subset = subset[subset[cfg["tier_col"]].isin(["elevated", "critical"])]
         label_bits.append("at high risk (elevated or critical)")
@@ -170,9 +206,30 @@ def query_fleet(
 
     if subset.empty:
         return f"No {label} right now."
+
     top = subset.sort_values(cfg["score_col"], ascending=False).head(max(1, min(top_n, 50)))
-    ids = ", ".join(top[cfg["id_col"]].astype(str))
     remaining = len(subset) - len(top)
+
+    if active_metadata:
+        # Structured "criteria block + Results" format when the query is a
+        # metadata filter (CNC/substation/feeder/status), rather than the
+        # one-line sentence used for plain tier/flag queries.
+        criteria_lines = []
+        if active_metadata.get("cnc"):
+            criteria_lines.append(f"CNC: {active_metadata['cnc']}")
+        if active_metadata.get("substation_id"):
+            criteria_lines.append(f"Substation: {active_metadata['substation_id']}")
+        if active_metadata.get("feeder_id"):
+            criteria_lines.append(f"Feeder: {active_metadata['feeder_id']}")
+        if tier and not high_risk_only:
+            criteria_lines.append(f"Risk Tier: {tier.strip().capitalize()}")
+        if active_metadata.get("status"):
+            criteria_lines.append(f"Status: {active_metadata['status'].capitalize()}")
+        ids = "\n".join(top[cfg["id_col"]].astype(str))
+        more = f"\n(+{remaining} more)" if remaining > 0 else ""
+        return "\n".join(criteria_lines) + f"\n\nResults ({len(subset)} total):\n{ids}{more}"
+
+    ids = ", ".join(top[cfg["id_col"]].astype(str))
     more = f" (+{remaining} more)" if remaining > 0 else ""
     return f"{len(subset)} {label}, top {len(top)} by {cfg['score_label']}: {ids}{more}"
 

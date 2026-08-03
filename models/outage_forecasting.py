@@ -38,6 +38,10 @@ CAPACITY_FRACTION = 0.15
 # severity instead of alphabetically (Critical, Elevated, Low, Moderate).
 TIER_ORDER = {"low": 1, "moderate": 2, "elevated": 3, "critical": 4}
 
+# Same 3-value collapse as models/failure_prediction.py's TIER_TO_STATUS, so
+# feeders and transformers expose the same Healthy/Warning/Critical vocabulary.
+TIER_TO_STATUS = {"low": "Healthy", "moderate": "Warning", "elevated": "Warning", "critical": "Critical"}
+
 
 def load_data(
     feeder_path="data/feeder_data.csv",
@@ -102,6 +106,7 @@ def score_all_feeders(model, df, capacity_fraction=CAPACITY_FRACTION, explain_pr
         labels=["low", "moderate", "elevated", "critical"]
     )
     result["risk_tier_order"] = result["risk_tier"].map(TIER_ORDER)
+    result["status"] = result["risk_tier"].map(TIER_TO_STATUS)
 
     cutoff = result["outage_risk_score"].quantile(1 - capacity_fraction)
     result["alert_flag"] = (result["outage_risk_score"] >= cutoff).astype(int)

@@ -164,7 +164,7 @@ def test_find_reply_has_asset_facts():
     df = pd.read_csv(DATA / "transformer_data.csv")
     row = df.iloc[0]
     reply = chatbot.answer(f"find {row['transformer_id']}", DATA)
-    assert row["location"] in reply
+    assert row["cnc"] in reply
     assert str(row["capacity_kva"]) in reply
 
 

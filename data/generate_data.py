@@ -35,9 +35,71 @@ LOCATIONS = ["Tzaneen", "Nkowankowa", "Lenyenye", "Modjadjiskloof", "Haenertsbur
              "Ga-Kgapane", "Bolobedu", "Xihoko", "Politsi"]
 CAPACITY_KVA_OPTIONS = [50, 100, 200, 315, 500, 800, 1000, 1600, 2000]
 
+# Grid topology: every feeder (and therefore every transformer on it) belongs
+# to exactly one CNC (Control & Network Centre - the regional operations
+# office) and one substation beneath that CNC. CNCs are the 9 LOCATIONS
+# above; each gets a fixed number of substations.
+SUBSTATIONS_PER_CNC = 3
+CNC_CODES = {
+    "Tzaneen": "TZN", "Nkowankowa": "NKW", "Lenyenye": "LNY",
+    "Modjadjiskloof": "MDK", "Haenertsburg": "HBG", "Ga-Kgapane": "GKG",
+    "Bolobedu": "BLB", "Xihoko": "XHK", "Politsi": "PLT",
+}
+# Approximate town-centre coordinates (Mopani District, Limpopo) used only as
+# jitter anchors for synthetic substation/pole GPS - not surveyed asset
+# locations.
+CNC_COORDS = {
+    "Tzaneen": (-23.8330, 30.1631),
+    "Nkowankowa": (-23.9333, 30.2333),
+    "Lenyenye": (-23.9833, 30.2667),
+    "Modjadjiskloof": (-23.7333, 30.1667),
+    "Haenertsburg": (-23.9667, 29.9667),
+    "Ga-Kgapane": (-23.8667, 30.3333),
+    "Bolobedu": (-23.9500, 30.4000),
+    "Xihoko": (-23.7667, 30.3500),
+    "Politsi": (-23.8167, 30.0333),
+}
 
-def generate_transformer_data(n=N_TRANSFORMERS, n_feeders=N_FEEDERS, seed=RANDOM_SEED):
+
+def generate_feeder_topology(n_feeders=N_FEEDERS, seed=RANDOM_SEED):
+    """Assigns every feeder to one CNC and one substation beneath it. This is
+    physical grid topology - it doesn't depend on any transformer/failure
+    data, so it can be generated once and reused by both
+    generate_transformer_data and generate_feeder_data as the single source
+    of truth for "where is this asset" instead of each drawing its own
+    independent, disconnected location."""
+    rng = np.random.default_rng(seed + 3)
+    feeder_ids = [f"F{i:03d}" for i in range(1, n_feeders + 1)]
+
+    substations = []
+    for cnc in LOCATIONS:
+        code = CNC_CODES[cnc]
+        base_lat, base_lon = CNC_COORDS[cnc]
+        for s in range(1, SUBSTATIONS_PER_CNC + 1):
+            substations.append({
+                "cnc": cnc,
+                "substation_id": f"SS-{code}-{s:02d}",
+                "substation_name": f"{cnc} Substation {s}",
+                "substation_lat": round(base_lat + rng.uniform(-0.05, 0.05), 5),
+                "substation_lon": round(base_lon + rng.uniform(-0.05, 0.05), 5),
+            })
+    substations = pd.DataFrame(substations)
+
+    # Round-robin then shuffle so every substation gets a near-even share of
+    # feeders instead of a purely random (and therefore lumpy) draw.
+    reps = int(np.ceil(n_feeders / len(substations)))
+    assignment = np.tile(np.arange(len(substations)), reps)[:n_feeders]
+    rng.shuffle(assignment)
+
+    topo = substations.iloc[assignment].reset_index(drop=True)
+    topo.insert(0, "feeder_id", feeder_ids)
+    return topo
+
+
+def generate_transformer_data(n=N_TRANSFORMERS, n_feeders=N_FEEDERS, seed=RANDOM_SEED, topology=None):
     rng = np.random.default_rng(seed)
+    if topology is None:
+        topology = generate_feeder_topology(n_feeders, seed)
 
     feeder_id = rng.integers(1, n_feeders + 1, size=n)
     age_years = np.clip(rng.gamma(shape=2.2, scale=6.0, size=n), 0, 35)
@@ -70,12 +132,11 @@ def generate_transformer_data(n=N_TRANSFORMERS, n_feeders=N_FEEDERS, seed=RANDOM
     prob_failure = 1 / (1 + np.exp(-risk))
     failure_within_1yr = rng.binomial(1, prob_failure)
 
-    # Asset metadata + maintenance history. New rng draws go here, strictly
-    # after every draw above, so the original 8 columns stay byte-identical
-    # for the same seed - inserting a draw earlier would shift the whole
-    # rng stream and silently change age_years/oil_quality_index/etc for
-    # existing rows.
-    location = rng.choice(LOCATIONS, size=n)
+    # Asset metadata + maintenance history. Geography (cnc/substation) now
+    # comes from the feeder topology map rather than an independent rng
+    # draw, so a transformer's location always agrees with its feeder's -
+    # this does shift the rng stream relative to older byte-identical runs,
+    # but that guarantee only ever covered the pre-topology schema anyway.
     capacity_kva = rng.choice(CAPACITY_KVA_OPTIONS, size=n)
     installation_year = (REFERENCE_YEAR - age_years.round()).astype(int)
 
@@ -94,16 +155,47 @@ def generate_transformer_data(n=N_TRANSFORMERS, n_feeders=N_FEEDERS, seed=RANDOM
     ).astype(int)
     last_oil_replacement_date = REFERENCE_DATE - pd.to_timedelta(days_since_oil, unit="D")
 
+    feeder_id_str = [f"F{f:03d}" for f in feeder_id]
+    topo_by_feeder = topology.set_index("feeder_id")
+    topo_matched = topo_by_feeder.loc[feeder_id_str].reset_index()
+    cnc = topo_matched["cnc"].values
+    substation_id = topo_matched["substation_id"].values
+    substation_name = topo_matched["substation_name"].values
+
+    # Pole GPS: jitter a few hundred metres to ~1km around the transformer's
+    # substation anchor. Drawn last so it doesn't disturb any column above.
+    gps_lat = (topo_matched["substation_lat"].values + rng.normal(0, 0.006, size=n)).round(5)
+    gps_lon = (topo_matched["substation_lon"].values + rng.normal(0, 0.006, size=n)).round(5)
+    cnc_code = pd.Series(cnc).map(CNC_CODES).values
+    pole_id = [f"POLE-{code}-{i:05d}" for code, i in zip(cnc_code, range(1, n + 1))]
+
+    transformer_id = [f"T{i:04d}" for i in range(1, n + 1)]
+    # Sequential-within-substation display name, e.g. "Tzaneen Substation 2
+    # TX-014" - assigned after the substation is known, not part of the rng
+    # stream (purely derived from substation_id order of appearance).
+    seq_in_substation = (
+        pd.Series(substation_id).groupby(pd.Series(substation_id)).cumcount() + 1
+    ).values
+    transformer_name = [
+        f"{name} TX-{seq:03d}" for name, seq in zip(substation_name, seq_in_substation)
+    ]
+
     df = pd.DataFrame({
-        "transformer_id": [f"T{i:04d}" for i in range(1, n + 1)],
-        "feeder_id": [f"F{f:03d}" for f in feeder_id],
+        "transformer_id": transformer_id,
+        "transformer_name": transformer_name,
+        "feeder_id": feeder_id_str,
+        "cnc": cnc,
+        "substation_id": substation_id,
+        "substation_name": substation_name,
         "age_years": age_years.round(1),
         "load_factor": load_factor.round(3),
         "maintenance_score": maintenance_score.round(3),
         "oil_quality_index": oil_quality_index.round(3),
         "temperature_rise_c": temperature_rise_c.round(1),
         "failure_within_1yr": failure_within_1yr,
-        "location": location,
+        "pole_id": pole_id,
+        "gps_lat": gps_lat,
+        "gps_lon": gps_lon,
         "capacity_kva": capacity_kva,
         "installation_year": installation_year,
         "previous_failures": previous_failures,
@@ -170,8 +262,10 @@ def generate_meter_data(n=N_METERS, seed=RANDOM_SEED):
     return df
 
 
-def generate_feeder_data(transformer_df, n=N_FEEDERS, seed=RANDOM_SEED):
+def generate_feeder_data(transformer_df, topology=None, n=N_FEEDERS, seed=RANDOM_SEED):
     rng = np.random.default_rng(seed + 2)
+    if topology is None:
+        topology = generate_feeder_topology(n, seed)
 
     feeder_id = [f"F{i:03d}" for i in range(1, n + 1)]
 
@@ -222,7 +316,10 @@ def generate_feeder_data(transformer_df, n=N_FEEDERS, seed=RANDOM_SEED):
         "historical_outage_count_1yr": historical_outage_count_1yr,
         "outage_within_7_days": outage_within_7_days,
     })
-    return df
+    # Feeders inherit their CNC/substation from the same topology map
+    # transformers use, so "CNC: Tzaneen, Feeder: F007" always refers to a
+    # feeder that's actually physically under Tzaneen.
+    return topology.merge(df, on="feeder_id")
 
 
 def generate_transformer_history(transformer_df, n_months=12, seed=45):
@@ -258,9 +355,10 @@ def generate_transformer_history(transformer_df, n_months=12, seed=45):
 
 
 if __name__ == "__main__":
-    transformer_df = generate_transformer_data()
+    topology = generate_feeder_topology()
+    transformer_df = generate_transformer_data(topology=topology)
     meter_df = generate_meter_data()
-    feeder_df = generate_feeder_data(transformer_df)
+    feeder_df = generate_feeder_data(transformer_df, topology)
     history_df = generate_transformer_history(transformer_df)
 
     transformer_df.to_csv("data/transformer_data.csv", index=False)

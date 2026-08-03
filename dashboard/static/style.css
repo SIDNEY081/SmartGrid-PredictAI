@@ -45,6 +45,15 @@ body {
   background: rgba(252, 252, 251, 0.88);
   border-right: 1px solid var(--border);
   backdrop-filter: blur(6px);
+  /* Pinned to the viewport and scrolls independently of main - without
+     this, .app-shell's align-items:stretch makes the sidebar as tall as
+     main's content, so a long panel (e.g. the technician's assignment
+     list) pushes the logout button below the fold. */
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .sidebar-brand {
@@ -167,7 +176,10 @@ main {
 
 @media (max-width: 860px) {
   .app-shell { flex-direction: column; }
-  .sidebar { width: 100%; flex-direction: row; align-items: center; flex-wrap: wrap; }
+  .sidebar {
+    width: 100%; flex-direction: row; align-items: center; flex-wrap: wrap;
+    position: static; height: auto; overflow-y: visible;
+  }
   .side-nav { flex-direction: row; flex-wrap: wrap; }
   .sidebar-user { border-top: none; margin: 0; padding: 0; }
 }
@@ -661,6 +673,57 @@ table.compare-table th {
   color: var(--text-muted);
   font-size: 12.5px;
   margin: 0 0 8px;
+}
+
+/* Technician: Assigned / Recently Inspected subtabs + transformer picker */
+.tech-subtabs {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--gridline);
+  margin-bottom: 4px;
+}
+
+.tech-subtab-btn {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 4px 10px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.tech-subtab-btn:hover {
+  color: var(--text-primary);
+}
+
+.tech-subtab-btn.active {
+  color: var(--brand-1);
+  border-bottom-color: var(--brand-1);
+}
+
+.tech-select-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 4px 0 6px;
+}
+
+#technician-select {
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-1);
+  margin-bottom: 14px;
+  max-width: 420px;
+  width: 100%;
 }
 
 /* Technician assignment cards + inspection form, admin reports list */

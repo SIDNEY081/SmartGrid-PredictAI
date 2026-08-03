@@ -1,9 +1,11 @@
 import generate_data as gd
 
 TRANSFORMER_COLUMNS = {
-    "transformer_id", "feeder_id", "age_years", "load_factor", "maintenance_score",
+    "transformer_id", "transformer_name", "feeder_id", "cnc", "substation_id",
+    "substation_name", "age_years", "load_factor", "maintenance_score",
     "oil_quality_index", "temperature_rise_c", "failure_within_1yr",
-    "location", "capacity_kva", "installation_year", "previous_failures",
+    "pole_id", "gps_lat", "gps_lon",
+    "capacity_kva", "installation_year", "previous_failures",
     "last_serviced_date", "last_oil_replacement_date",
 }
 TRANSFORMER_HISTORY_COLUMNS = {
@@ -16,7 +18,9 @@ METER_COLUMNS = {
     "area_theft_history_rate", "is_theft",
 }
 FEEDER_COLUMNS = {
-    "feeder_id", "feeder_age_years", "vegetation_encroachment_score",
+    "feeder_id", "cnc", "substation_id", "substation_name",
+    "substation_lat", "substation_lon",
+    "feeder_age_years", "vegetation_encroachment_score",
     "protection_equipment_age", "peak_load_pct", "load_growth_rate",
     "historical_outage_count_1yr", "outage_within_7_days",
 }
@@ -39,11 +43,19 @@ def test_meter_data_schema_and_balance():
 
 
 def test_feeder_data_schema_and_balance():
-    transformer_df = gd.generate_transformer_data(n=400, n_feeders=100, seed=1)
-    df = gd.generate_feeder_data(transformer_df, n=100, seed=1)
+    topology = gd.generate_feeder_topology(n_feeders=100, seed=1)
+    transformer_df = gd.generate_transformer_data(n=400, n_feeders=100, seed=1, topology=topology)
+    df = gd.generate_feeder_data(transformer_df, topology, n=100, seed=1)
     assert set(df.columns) == FEEDER_COLUMNS
     assert df["feeder_id"].is_unique
     assert 0.05 < df["outage_within_7_days"].mean() < 0.5
+
+
+def test_feeder_topology_every_feeder_assigned():
+    topology = gd.generate_feeder_topology(n_feeders=100, seed=1)
+    assert topology["feeder_id"].is_unique
+    assert len(topology) == 100
+    assert set(topology["cnc"]) <= set(gd.LOCATIONS)
 
 
 def test_transformer_installation_year_matches_age():

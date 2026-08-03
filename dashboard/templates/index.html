@@ -72,10 +72,27 @@
         <p class="assistant-sub">Manage users, review datasets, and view the full activity log under <strong>⚙️ Settings</strong>.</p>
 
         {% elif home.kind == "technician" %}
-        <h2>🏠&nbsp;My Assigned Transformers</h2>
+        <h2>🏠&nbsp;My Transformers</h2>
         <p class="assistant-sub">Transformers assigned to you, with the AI's current prediction and recommended actions. Submit an inspection after visiting a site.</p>
-        <div id="technician-list" class="technician-list">
-          <p class="assistant-placeholder">Loading your assignments…</p>
+
+        <div class="tech-subtabs">
+          <button type="button" class="tech-subtab-btn active" data-tech-sub="assigned">Assigned</button>
+          <button type="button" class="tech-subtab-btn" data-tech-sub="recent">Recently Inspected</button>
+        </div>
+
+        <div class="tech-subpanel" data-tech-sub="assigned">
+          <label class="tech-select-label" for="technician-select">Select a transformer</label>
+          <select id="technician-select" hidden></select>
+          <div id="technician-list" class="technician-list">
+            <p class="assistant-placeholder">Loading your assignments…</p>
+          </div>
+        </div>
+
+        <div class="tech-subpanel" data-tech-sub="recent" hidden>
+          <p class="assistant-sub">Inspections you've submitted in the last 3 months, most recent first.</p>
+          <div id="technician-recent-list" class="technician-list">
+            <p class="assistant-placeholder">Loading recent inspections…</p>
+          </div>
         </div>
 
         {% else %}
@@ -342,80 +359,144 @@
 
     // ---- Technician: assigned transformers + inspection submission ----
     (function () {
-      var container = document.getElementById("technician-list");
-      if (!container) return;
+      var listContainer = document.getElementById("technician-list");
+      if (!listContainer) return;
+
+      var selectEl = document.getElementById("technician-select");
+      var recentContainer = document.getElementById("technician-recent-list");
+      var subtabBtns = document.querySelectorAll(".tech-subtab-btn");
+      var subpanels = document.querySelectorAll(".tech-subpanel");
 
       var STATUS_LABELS = { pending: "Pending", inspected: "Inspected", needs_followup: "Needs follow-up" };
       var TIER_COLORS = { low: "#0ca30c", moderate: "#fab219", elevated: "#ec835a", critical: "#d03b3b" };
+      var assignments = [];
+      var recentLoaded = false;
 
-      function load() {
+      subtabBtns.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          subtabBtns.forEach(function (b) { b.classList.remove("active"); });
+          btn.classList.add("active");
+          var target = btn.dataset.techSub;
+          subpanels.forEach(function (p) { p.hidden = p.dataset.techSub !== target; });
+          if (target === "recent" && !recentLoaded) loadRecent();
+        });
+      });
+
+      // "2 months ago" rather than a raw date - this is a field worker
+      // scanning a list, not reading a report.
+      function agoLabel(isoDate) {
+        var days = Math.max(0, Math.round((Date.now() - new Date(isoDate).getTime()) / 86400000));
+        if (days === 0) return "today";
+        if (days === 1) return "1 day ago";
+        if (days < 60) return days + " days ago";
+        var months = Math.round(days / 30);
+        return months === 1 ? "1 month ago" : months + " months ago";
+      }
+
+      function loadAssignments() {
         fetch("/api/technician/assignments")
           .then(function (r) { return r.json(); })
-          .then(function (data) { render(data.transformers); })
-          .catch(function () { container.textContent = "Could not load your assignments."; });
+          .then(function (data) { assignments = data.transformers; renderSelect(); })
+          .catch(function () { listContainer.textContent = "Could not load your assignments."; });
       }
 
-      function render(items) {
-        if (!items.length) {
-          container.innerHTML = '<p class="assistant-placeholder">No transformers assigned to you yet.</p>';
+      function renderSelect() {
+        if (!assignments.length) {
+          selectEl.hidden = true;
+          listContainer.innerHTML = '<p class="assistant-placeholder">No transformers assigned to you yet.</p>';
           return;
         }
-        container.innerHTML = "";
-        items.forEach(function (item) {
-          var card = document.createElement("div");
-          card.className = "technician-card technician-card-block";
-          var color = TIER_COLORS[item.risk_tier] || "#52514e";
-          var lastLine = item.last_inspection
-            ? "Last inspection: " + STATUS_LABELS[item.last_inspection.status] + " on " + item.last_inspection.created_at.slice(0, 10) + " by " + item.last_inspection.technician_name
-            : "No inspection submitted yet.";
-          card.innerHTML =
-            '<div class="technician-card-head">' +
-              "<strong>" + item.id + "</strong> - " + item.location +
-              ' <span class="assistant-tag" style="background:' + color + '">' + item.risk_tier.toUpperCase() + "</span>" +
-            "</div>" +
-            '<div class="assistant-meta">Health score ' + item.health_score.toFixed(0) + "% · Predicted failure: " + item.predicted_failure_mode + "</div>" +
-            '<div class="assistant-meta">' + lastLine + "</div>" +
-            '<div class="assistant-reco-label">Recommendations</div>' +
-            '<ul class="assistant-check-list">' + item.recommendations.map(function (a) { return "<li>" + a + "</li>"; }).join("") + "</ul>" +
-            '<button type="button" class="inspect-toggle">Update inspection</button>' +
-            '<form class="inspection-form" hidden enctype="multipart/form-data">' +
-              '<input type="hidden" name="transformer_id" value="' + item.id + '">' +
-              "<label>Status" +
-                '<select name="status">' +
-                  '<option value="inspected">Inspected</option>' +
-                  '<option value="needs_followup">Needs follow-up</option>' +
-                  '<option value="pending">Pending</option>' +
-                "</select>" +
-              "</label>" +
-              '<label>Notes <textarea name="notes" rows="2"></textarea></label>' +
-              '<label>Photo (optional) <input type="file" name="photo" accept="image/*"></label>' +
-              '<button type="submit">Submit inspection</button>' +
-              '<span class="inspect-status"></span>' +
-            "</form>";
-
-          var toggleBtn = card.querySelector(".inspect-toggle");
-          var form = card.querySelector(".inspection-form");
-          toggleBtn.addEventListener("click", function () { form.hidden = !form.hidden; });
-
-          form.addEventListener("submit", function (e) {
-            e.preventDefault();
-            var statusEl = form.querySelector(".inspect-status");
-            statusEl.textContent = "Submitting…";
-            fetch("/api/technician/inspection", { method: "POST", body: new FormData(form) })
-              .then(function (r) { return r.json(); })
-              .then(function (data) {
-                if (data.error) { statusEl.textContent = data.error; return; }
-                statusEl.textContent = "Saved.";
-                setTimeout(load, 600);
-              })
-              .catch(function () { statusEl.textContent = "Something went wrong."; });
-          });
-
-          container.appendChild(card);
-        });
+        selectEl.hidden = false;
+        selectEl.innerHTML = assignments.map(function (item) {
+          return '<option value="' + item.id + '">' + item.id + " - " + item.cnc + " (" + item.risk_tier.toUpperCase() + ")</option>";
+        }).join("");
+        renderCard(selectEl.value);
       }
 
-      load();
+      selectEl.addEventListener("change", function () { renderCard(selectEl.value); });
+
+      function renderCard(transformerId) {
+        var item = assignments.filter(function (a) { return a.id === transformerId; })[0];
+        listContainer.innerHTML = "";
+        if (!item) return;
+
+        var card = document.createElement("div");
+        card.className = "technician-card technician-card-block";
+        var color = TIER_COLORS[item.risk_tier] || "#52514e";
+        var lastLine = item.last_inspection
+          ? "Last inspection: " + STATUS_LABELS[item.last_inspection.status] + " " + agoLabel(item.last_inspection.created_at) + " by " + item.last_inspection.technician_name
+          : "No inspection submitted yet.";
+        card.innerHTML =
+          '<div class="technician-card-head">' +
+            "<strong>" + item.id + "</strong> - " + item.cnc +
+            ' <span class="assistant-tag" style="background:' + color + '">' + item.risk_tier.toUpperCase() + "</span>" +
+          "</div>" +
+          '<div class="assistant-meta">Health score ' + item.health_score.toFixed(0) + "% · Predicted failure: " + item.predicted_failure_mode + "</div>" +
+          '<div class="assistant-meta">' + lastLine + "</div>" +
+          '<div class="assistant-reco-label">Recommendations</div>' +
+          '<ul class="assistant-check-list">' + item.recommendations.map(function (a) { return "<li>" + a + "</li>"; }).join("") + "</ul>" +
+          '<button type="button" class="inspect-toggle">Update inspection</button>' +
+          '<form class="inspection-form" hidden enctype="multipart/form-data">' +
+            '<input type="hidden" name="transformer_id" value="' + item.id + '">' +
+            "<label>Status" +
+              '<select name="status">' +
+                '<option value="inspected">Inspected</option>' +
+                '<option value="needs_followup">Needs follow-up</option>' +
+                '<option value="pending">Pending</option>' +
+              "</select>" +
+            "</label>" +
+            '<label>Notes <textarea name="notes" rows="2"></textarea></label>' +
+            '<label>Photo (optional) <input type="file" name="photo" accept="image/*"></label>' +
+            '<button type="submit">Submit inspection</button>' +
+            '<span class="inspect-status"></span>' +
+          "</form>";
+
+        var toggleBtn = card.querySelector(".inspect-toggle");
+        var form = card.querySelector(".inspection-form");
+        toggleBtn.addEventListener("click", function () { form.hidden = !form.hidden; });
+
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          var statusEl = form.querySelector(".inspect-status");
+          statusEl.textContent = "Submitting…";
+          fetch("/api/technician/inspection", { method: "POST", body: new FormData(form) })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              if (data.error) { statusEl.textContent = data.error; return; }
+              statusEl.textContent = "Saved.";
+              recentLoaded = false;
+              setTimeout(loadAssignments, 600);
+            })
+            .catch(function () { statusEl.textContent = "Something went wrong."; });
+        });
+
+        listContainer.appendChild(card);
+      }
+
+      function loadRecent() {
+        recentContainer.innerHTML = '<p class="assistant-placeholder">Loading recent inspections…</p>';
+        fetch("/api/technician/recent-inspections")
+          .then(function (r) { return r.json(); })
+          .then(function (data) { renderRecent(data.inspections); recentLoaded = true; })
+          .catch(function () { recentContainer.textContent = "Could not load recent inspections."; });
+      }
+
+      function renderRecent(items) {
+        if (!items.length) {
+          recentContainer.innerHTML = '<p class="assistant-placeholder">No inspections submitted in the last 3 months.</p>';
+          return;
+        }
+        recentContainer.innerHTML = items.map(function (item) {
+          return '<div class="technician-card technician-card-block">' +
+            '<div class="technician-card-head"><strong>' + item.transformer_id + "</strong> - " + (item.cnc || "unknown") +
+              ' <span class="assistant-tag" style="background:#52514e">' + STATUS_LABELS[item.status] + "</span></div>" +
+            '<div class="assistant-meta">' + agoLabel(item.created_at) + " (" + item.created_at.slice(0, 10) + ") · " + item.technician_name + "</div>" +
+            (item.notes ? '<div class="assistant-meta">' + item.notes + "</div>" : "") +
+          "</div>";
+        }).join("");
+      }
+
+      loadAssignments();
     })();
 
     // ---- Admin: user management ----

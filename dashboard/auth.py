@@ -20,7 +20,7 @@ immediately - see DEMO_ACCOUNTS below for the credentials.
 """
 
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 
@@ -243,6 +243,21 @@ def get_inspection_history(transformer_id, limit=10):
         "JOIN users u ON u.id = i.technician_id "
         "WHERE i.transformer_id = ? ORDER BY i.created_at DESC LIMIT ?",
         (transformer_id, limit),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_recent_inspections_by_technician(technician_id, days=90, limit=50):
+    """Every inspection a technician has personally submitted in the last
+    `days` days (default ~3 months, comfortably covers "inspected 2 months
+    ago"), newest first - not scoped to their *current* assignments, since a
+    transformer can be reassigned after being inspected."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="seconds")
+    rows = get_db().execute(
+        "SELECT i.*, u.full_name AS technician_name FROM inspections i "
+        "JOIN users u ON u.id = i.technician_id "
+        "WHERE i.technician_id = ? AND i.created_at >= ? ORDER BY i.created_at DESC LIMIT ?",
+        (technician_id, cutoff, limit),
     ).fetchall()
     return [dict(r) for r in rows]
 

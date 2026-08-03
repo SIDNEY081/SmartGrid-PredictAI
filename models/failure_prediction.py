@@ -32,6 +32,12 @@ CAPACITY_FRACTION = 0.15
 # severity instead of alphabetically (Critical, Elevated, Low, Moderate).
 TIER_ORDER = {"low": 1, "moderate": 2, "elevated": 3, "critical": 4}
 
+# Simplified 3-value status for filtering/display, derived from the 4-tier
+# risk_tier - the underlying model keeps all 4 tiers, this just collapses
+# moderate+elevated into one "Warning" bucket for people who don't need that
+# distinction.
+TIER_TO_STATUS = {"low": "Healthy", "moderate": "Warning", "elevated": "Warning", "critical": "Critical"}
+
 # Rule-of-thumb typical service life for a distribution transformer, used
 # only to give remaining_useful_life_years a scale - a heuristic estimate,
 # not a real asset-management survival-curve output.
@@ -106,6 +112,7 @@ def score_all_transformers(model, df, capacity_fraction=CAPACITY_FRACTION, expla
     result["risk_score"] = (proba * 100).round(1)
     result["risk_tier"] = pd.cut(result["risk_score"], bins=[-0.1, 20, 50, 75, 100], labels=["low", "moderate", "elevated", "critical"])
     result["risk_tier_order"] = result["risk_tier"].map(TIER_ORDER)
+    result["status"] = result["risk_tier"].map(TIER_TO_STATUS)
 
     # Capacity-based flag: the N riskiest transformers a crew could actually
     # inspect, rather than every transformer that clears a recall-tuned

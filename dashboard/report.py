@@ -29,7 +29,9 @@ DEFAULT_OUT_DIR = ROOT / "reports"
 def _load_transformer_row(transformer_id, data_dir):
     scores = pd.read_csv(data_dir / "transformer_risk_scores.csv")
     raw_cols = [
-        "transformer_id", "location", "capacity_kva", "installation_year",
+        "transformer_id", "transformer_name", "cnc", "substation_id",
+        "substation_name", "pole_id", "gps_lat", "gps_lon",
+        "capacity_kva", "installation_year",
         "previous_failures", "last_serviced_date", "last_oil_replacement_date",
     ]
     raw = pd.read_csv(data_dir / "transformer_data.csv")[raw_cols]
@@ -63,13 +65,18 @@ def generate_pdf_report(transformer_id, data_dir, out_dir=None):
     ]
 
     fields = [
+        ("Transformer Name", row["transformer_name"]),
+        ("Status", row["status"]),
         ("Risk Score", f"{row['risk_score']:.1f}%"),
         ("Risk Level", tier.capitalize()),
         ("Predicted Failure", row["predicted_failure_mode"]),
         ("Confidence", f"{row['confidence_pct']:.1f}%"),
         ("Health Score", f"{row['health_score']:.1f}/100"),
         ("Remaining Useful Life", f"{row['remaining_useful_life_years']:.1f} years"),
-        ("Location", row["location"]),
+        ("CNC", row["cnc"]),
+        ("Substation", row["substation_name"]),
+        ("Feeder", row["feeder_id"]),
+        ("Pole / GPS", f"{row['pole_id']} ({row['gps_lat']}, {row['gps_lon']})"),
         ("Capacity", f"{row['capacity_kva']} kVA"),
         ("Installed", str(int(row["installation_year"]))),
         ("Previous Failures", str(int(row["previous_failures"]))),
