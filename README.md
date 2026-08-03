@@ -60,8 +60,6 @@ enforced server-side on every route - not just a hidden nav button.
 | System Administrator | `admin` | `admin123` | Everything, plus Settings (user management, dataset stats, activity log) |
 | Maintenance Engineer | `engineer` | `engineer123` | Dashboard, Transformer/Meter/Feeder tabs, AI Assistant, Reports |
 | Field Technician | `technician` | `tech123` | Only their assigned transformers - AI recommendations + inspection submission (status, notes, optional photo) |
-| Operations / Control Centre | `operator` | `operator123` | Dashboard, Transformer/Meter/Feeder tabs (monitoring only) |
-| Asset Manager | `assetmgr` | `assetmgr123` | Dashboard, Transformer/Meter/Feeder tabs, Reports |
 
 These are demo credentials for this prototype, printed to the console the
 first time `dashboard/app.py` seeds `data/app.db` - not a real secret

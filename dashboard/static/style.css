@@ -230,6 +230,12 @@ section.panel[data-panel="feeder"] h2 .entity-icon { color: #1baf7a; }
   color: var(--text-secondary);
 }
 
+.embedded-assistant {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--gridline);
+}
+
 .stat-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -486,6 +492,45 @@ footer {
   cursor: pointer;
 }
 
+.assistant-lookup {
+  margin-bottom: 12px;
+}
+
+.assistant-lookup label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.assistant-lookup-row {
+  display: flex;
+  gap: 8px;
+}
+
+.assistant-lookup-row input {
+  flex: 1;
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-1);
+}
+
+.assistant-lookup-row button {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--brand-1);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
 .assistant-card {
   border: 1px solid var(--border);
   border-top: 3px solid var(--brand-1);
@@ -603,6 +648,16 @@ footer {
 
 .assistant-download:hover { text-decoration: underline; }
 
+.report-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.report-actions .assistant-download {
+  margin-top: 0;
+}
+
 .assistant-sub-label {
   display: block;
   font-size: 12.5px;
@@ -673,6 +728,53 @@ table.compare-table th {
   color: var(--text-muted);
   font-size: 12.5px;
   margin: 0 0 8px;
+}
+
+.landscape-guide {
+  background: var(--page-plane);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+
+.landscape-guide p {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.landscape-guide p:last-child {
+  margin-bottom: 0;
+}
+
+.landscape-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.landscape-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.landscape-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.landscape-controls {
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 /* Technician: Assigned / Recently Inspected subtabs + transformer picker */

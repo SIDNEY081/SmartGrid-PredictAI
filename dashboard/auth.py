@@ -6,15 +6,13 @@ hashing (werkzeug, already a Flask dependency), real sessions, real
 per-role data (technician assignments, inspection submissions, an activity
 log) - not a cosmetic login screen in front of an otherwise-open app.
 
-Five roles, matching an Eskom-style operations team:
+Three roles, matching an Eskom-style operations team:
     administrator   - manage users, full visibility, system/dataset info
     engineer        - run predictions, generate reports, use the AI Assistant
     technician      - view assigned transformers, submit inspections
-    operator        - Operations/Control Centre: fleet-wide monitoring only
-    asset_manager   - dashboards/trends/reports only
 
 The database lives at data/app.db, separate from the synthetic asset CSVs
-in the same folder. init_db() creates the schema and seeds five demo
+in the same folder. init_db() creates the schema and seeds three demo
 accounts (one per role) the first time it runs, so a clean checkout works
 immediately - see DEMO_ACCOUNTS below for the credentials.
 """
@@ -31,13 +29,11 @@ ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = ROOT / "data" / "app.db"
 UPLOAD_DIR = ROOT / "data" / "inspection_uploads"
 
-ROLES = ["administrator", "engineer", "technician", "operator", "asset_manager"]
+ROLES = ["administrator", "engineer", "technician"]
 ROLE_LABELS = {
     "administrator": "System Administrator",
     "engineer": "Maintenance Engineer",
     "technician": "Field Technician",
-    "operator": "Operations / Control Centre",
-    "asset_manager": "Asset Manager",
 }
 
 # Demo credentials for this prototype - printed to the console on first
@@ -46,8 +42,6 @@ DEMO_ACCOUNTS = [
     ("admin", "admin123", "Sidney Mpenyana", "administrator"),
     ("engineer", "engineer123", "Sipho Dlamini", "engineer"),
     ("technician", "tech123", "Lerato Mokoena", "technician"),
-    ("operator", "operator123", "Johan van der Merwe", "operator"),
-    ("assetmgr", "assetmgr123", "Naledi Khumalo", "asset_manager"),
 ]
 # How many transformers the demo technician account starts with assigned -
 # a real row in the assignments table, not a value invented at answer time.
@@ -219,11 +213,40 @@ def set_user_active(user_id, is_active):
 # --------------------------------------------------------------------------
 # Technician assignments + inspections
 # --------------------------------------------------------------------------
+def list_technicians():
+    rows = get_db().execute(
+        "SELECT id, username, full_name FROM users WHERE role = 'technician' AND is_active = 1 ORDER BY full_name"
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def get_assigned_transformer_ids(technician_id):
     rows = get_db().execute(
         "SELECT transformer_id FROM assignments WHERE technician_id = ? ORDER BY assigned_at", (technician_id,)
     ).fetchall()
     return [r["transformer_id"] for r in rows]
+
+
+def assign_transformer(technician_id, transformer_id):
+    """Idempotent - re-assigning a transformer a technician already has is a
+    no-op rather than a duplicate row or an error, since the UNIQUE
+    constraint on (technician_id, transformer_id) plus INSERT OR IGNORE
+    means the same click twice just leaves things as they were."""
+    db = get_db()
+    db.execute(
+        "INSERT OR IGNORE INTO assignments (technician_id, transformer_id, assigned_at) VALUES (?, ?, ?)",
+        (technician_id, transformer_id, _now()),
+    )
+    db.commit()
+
+
+def unassign_transformer(technician_id, transformer_id):
+    db = get_db()
+    db.execute(
+        "DELETE FROM assignments WHERE technician_id = ? AND transformer_id = ?",
+        (technician_id, transformer_id),
+    )
+    db.commit()
 
 
 def submit_inspection(transformer_id, technician_id, status, notes, photo_filename):

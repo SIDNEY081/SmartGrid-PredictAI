@@ -38,9 +38,6 @@
         {% if "feeder" in allowed_panels %}
         <button type="button" class="tab-btn" data-panel="feeder">⚡&nbsp;Feeder Outage Forecasting</button>
         {% endif %}
-        {% if "assistant" in allowed_panels %}
-        <button type="button" class="tab-btn" data-panel="assistant">🤖&nbsp;AI Assistant</button>
-        {% endif %}
         {% if "reports" in allowed_panels %}
         <button type="button" class="tab-btn" data-panel="reports">📄&nbsp;Reports</button>
         {% endif %}
@@ -129,39 +126,47 @@
         </div>
         {% endif %}
         {% endif %}
-      </section>
 
-      <!-- ================= AI Assistant ================= -->
-      {% if "assistant" in allowed_panels %}
-      <section class="panel" data-panel="assistant">
-        <h2>🤖&nbsp;PredictAI Transformer Assistant</h2>
-        <p class="assistant-sub">Ask about asset health, interpret predictions, diagnose faults, and get maintenance recommendations - Claude with real tool access to the scored fleet, never inventing a number.</p>
+        {% if "assistant" in allowed_panels %}
+        <div class="embedded-assistant">
+          <h3 class="dash-section-title">🤖&nbsp;AI Assistant</h3>
+          <p class="assistant-sub">Ask about asset health, interpret predictions, diagnose faults, and get maintenance recommendations - Claude with real tool access to the scored fleet, never inventing a number.</p>
 
-        <div class="assistant-grid">
-          <div class="assistant-chat">
-            <div class="assistant-chat-header">
-              <span>💬 Chat</span>
-              <button type="button" id="chat-clear" title="Clear conversation">Clear</button>
+          <div class="assistant-grid">
+            <div class="assistant-chat">
+              <div class="assistant-chat-header">
+                <span>💬 Chat</span>
+                <button type="button" id="chat-clear" title="Clear conversation">Clear</button>
+              </div>
+              <div class="chat-log" id="chat-log"></div>
+              <div class="chat-suggestions" id="chat-suggestions">
+                <button type="button" class="chat-chip">Predict T0208</button>
+                <button type="button" class="chat-chip">Health of T0208</button>
+                <button type="button" class="chat-chip">Why is T0208 high risk?</button>
+                <button type="button" class="chat-chip">Top 5 riskiest feeders</button>
+              </div>
+              <form id="chat-form">
+                <input type="text" id="chat-input" placeholder="e.g. Predict transformer T0208" autocomplete="off">
+                <button type="submit">Send</button>
+              </form>
             </div>
-            <div class="chat-log" id="chat-log"></div>
-            <div class="chat-suggestions" id="chat-suggestions">
-              <button type="button" class="chat-chip">Predict T0208</button>
-              <button type="button" class="chat-chip">Health of T0208</button>
-              <button type="button" class="chat-chip">Why is T0208 high risk?</button>
-              <button type="button" class="chat-chip">Top 5 riskiest feeders</button>
-            </div>
-            <form id="chat-form">
-              <input type="text" id="chat-input" placeholder="e.g. Predict transformer T0208" autocomplete="off">
-              <button type="submit">Send</button>
-            </form>
-          </div>
 
-          <div class="assistant-card" id="prediction-card">
-            <p class="assistant-placeholder">Ask about a specific transformer (e.g. “predict T0208”) to see its full prediction card here.</p>
+            <div class="assistant-lookup">
+              <label for="direct-lookup-input">Look up a transformer directly (works even if the AI chat isn't configured)</label>
+              <div class="assistant-lookup-row">
+                <input type="text" id="direct-lookup-input" placeholder="e.g. T0208">
+                <button type="button" id="direct-lookup-btn">View</button>
+              </div>
+              <span id="direct-lookup-error" class="login-error" hidden></span>
+            </div>
+
+            <div class="assistant-card" id="prediction-card">
+              <p class="assistant-placeholder">Ask about a specific transformer (e.g. “predict T0208”), or look one up directly above, to see its full prediction card here.</p>
+            </div>
           </div>
         </div>
+        {% endif %}
       </section>
-      {% endif %}
 
       <!-- ================= Transformer / Meter / Feeder ================= -->
       {% for panel in [transformer, meter, feeder] %}
@@ -224,6 +229,24 @@
         <div class="landscape-wrap">
           <h3>3D risk landscape</h3>
           <p class="landscape-caption">{{ panel.landscape_caption }}</p>
+          <div class="landscape-guide">
+            <p>
+              Each dot is one {{ panel.entity_label[:-1] if panel.entity_label.endswith("s") else panel.entity_label }}.
+              Left/right position = <strong>{{ panel.landscape_labels[0] }}</strong>,
+              front/back position = <strong>{{ panel.landscape_labels[1] }}</strong>,
+              height = <strong>{{ panel.landscape_labels[2] }}</strong> - and color repeats that same
+              {{ panel.landscape_labels[2] | lower }}, so you can spot risk clusters without reading axes at all.
+            </p>
+            <div class="landscape-legend">
+              {% for tier in panel.tier_order %}
+              <span class="landscape-legend-item">
+                <span class="landscape-legend-dot" style="background:{{ panel.tier_color_map[tier] }}"></span>
+                {{ tier | capitalize }}
+              </span>
+              {% endfor %}
+            </div>
+            <p class="landscape-controls">🖱️ Drag to rotate · scroll to zoom · hover a dot for its exact id and values</p>
+          </div>
           {{ panel.landscape_html | safe }}
         </div>
         {% endif %}
@@ -235,7 +258,7 @@
       {% if "reports" in allowed_panels %}
       <section class="panel" data-panel="reports">
         <h2>📄&nbsp;Maintenance Reports</h2>
-        <p class="assistant-sub">Per-transformer PDF reports generated from the AI Assistant tab. Generate a new one from a transformer's prediction card.</p>
+        <p class="assistant-sub">Per-transformer PDF reports generated from the AI Assistant on your Dashboard. Generate a new one from a transformer's prediction card.</p>
         <div id="reports-list" class="technician-list">
           <p class="assistant-placeholder">Loading reports…</p>
         </div>
@@ -259,13 +282,28 @@
           <label>Password <input type="password" name="password" required></label>
           <label>Role
             <select name="role">
-              {% for r in ["administrator", "engineer", "technician", "operator", "asset_manager"] %}
+              {% for r in ["administrator", "engineer", "technician"] %}
               <option value="{{ r }}">{{ r.replace("_", " ") | title }}</option>
               {% endfor %}
             </select>
           </label>
           <button type="submit">Create user</button>
           <span id="new-user-error" class="login-error" hidden></span>
+        </form>
+
+        <h3 class="dash-section-title">Technician Assignments</h3>
+        <p class="assistant-sub">Assign specific transformers to a technician - a newly created technician starts with none, and only sees whatever's assigned here.</p>
+        <label class="tech-select-label" for="tech-assign-select">Technician</label>
+        <select id="tech-assign-select">
+          <option value="">Loading technicians…</option>
+        </select>
+        <div id="tech-assign-list" class="technician-list">
+          <p class="assistant-placeholder">Select a technician to see their assignments.</p>
+        </div>
+        <form id="tech-assign-form" class="settings-form">
+          <label>Transformer ID <input type="text" name="transformer_id" placeholder="e.g. T0208" required></label>
+          <button type="submit">Assign</button>
+          <span id="tech-assign-error" class="login-error" hidden></span>
         </form>
 
         <h3 class="dash-section-title">Datasets</h3>
@@ -337,7 +375,7 @@
       showPanel("home");
     })();
 
-    // ---- Reports list (admin / engineer / asset manager) ----
+    // ---- Reports list (admin / engineer) ----
     (function () {
       var container = document.getElementById("reports-list");
       if (!container) return;
@@ -351,7 +389,10 @@
           container.innerHTML = data.reports.map(function (r) {
             return '<div class="technician-card"><div><strong>' + r.filename + '</strong>' +
               '<div class="assistant-meta">' + r.modified + '</div></div>' +
-              '<a class="assistant-download" href="' + r.url + '">⬇ Download</a></div>';
+              '<div class="report-actions">' +
+              '<a class="assistant-download" href="' + r.url + '?view=1" target="_blank" rel="noopener">👁 View</a>' +
+              '<a class="assistant-download" href="' + r.url + '">⬇ Download</a>' +
+              "</div></div>";
           }).join("");
         })
         .catch(function () { container.textContent = "Could not load reports."; });
@@ -552,6 +593,91 @@
       load();
     })();
 
+    // ---- Admin: technician transformer assignments ----
+    (function () {
+      var select = document.getElementById("tech-assign-select");
+      if (!select) return;
+      var listEl = document.getElementById("tech-assign-list");
+      var form = document.getElementById("tech-assign-form");
+      var errorEl = document.getElementById("tech-assign-error");
+
+      var TIER_COLORS = { low: "#0ca30c", moderate: "#fab219", elevated: "#ec835a", critical: "#d03b3b" };
+
+      function loadTechnicians() {
+        fetch("/api/admin/technicians")
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (!data.technicians.length) {
+              select.innerHTML = '<option value="">No technician accounts yet</option>';
+              return;
+            }
+            select.innerHTML = data.technicians.map(function (t) {
+              return '<option value="' + t.id + '">' + t.full_name + " (" + t.username + ")</option>";
+            }).join("");
+            loadAssignments();
+          })
+          .catch(function () { select.innerHTML = '<option value="">Could not load technicians</option>'; });
+      }
+
+      function loadAssignments() {
+        if (!select.value) { listEl.innerHTML = ""; return; }
+        listEl.innerHTML = '<p class="assistant-placeholder">Loading assignments…</p>';
+        fetch("/api/admin/technicians/" + select.value + "/assignments")
+          .then(function (r) { return r.json(); })
+          .then(function (data) { renderAssignments(data.assignments); })
+          .catch(function () { listEl.textContent = "Could not load assignments."; });
+      }
+
+      function renderAssignments(items) {
+        if (!items.length) {
+          listEl.innerHTML = '<p class="assistant-placeholder">No transformers assigned yet.</p>';
+          return;
+        }
+        listEl.innerHTML = "";
+        items.forEach(function (item) {
+          var row = document.createElement("div");
+          row.className = "technician-card";
+          var color = TIER_COLORS[item.risk_tier] || "#52514e";
+          row.innerHTML =
+            "<div><strong>" + item.id + "</strong> - " + item.cnc +
+            ' <span class="assistant-tag" style="background:' + color + '">' + item.risk_tier.toUpperCase() + "</span></div>" +
+            '<button type="button" class="inspect-toggle">Unassign</button>';
+          row.querySelector("button").addEventListener("click", function () {
+            fetch("/api/admin/technicians/" + select.value + "/assignments/" + item.id, { method: "DELETE" })
+              .then(loadAssignments);
+          });
+          listEl.appendChild(row);
+        });
+      }
+
+      select.addEventListener("change", loadAssignments);
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        errorEl.hidden = true;
+        if (!select.value) { errorEl.textContent = "Pick a technician first."; errorEl.hidden = false; return; }
+        var transformerId = form.transformer_id.value.trim();
+        fetch("/api/admin/technicians/" + select.value + "/assignments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ transformer_id: transformerId }),
+        })
+          .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+          .then(function (result) {
+            if (!result.ok) {
+              errorEl.textContent = result.data.error || "Could not assign transformer.";
+              errorEl.hidden = false;
+              return;
+            }
+            form.reset();
+            loadAssignments();
+          })
+          .catch(function () { errorEl.textContent = "Something went wrong."; errorEl.hidden = false; });
+      });
+
+      loadTechnicians();
+    })();
+
     // AI Assistant: rule-based chat (no LLM/network call beyond our own
     // /api/chat) plus a structured prediction card for whichever
     // transformer the conversation last mentioned - driven by
@@ -655,14 +781,22 @@
           .then(function (data) {
             var container = document.getElementById("report-container");
             if (data.error) { container.textContent = data.error; return; }
-            var link = document.createElement("a");
-            link.href = data.url;
-            link.target = "_blank";
-            link.rel = "noopener";
-            link.className = "assistant-download";
-            link.textContent = "⬇ Download " + data.filename;
+            var viewLink = document.createElement("a");
+            viewLink.href = data.url + "?view=1";
+            viewLink.target = "_blank";
+            viewLink.rel = "noopener";
+            viewLink.className = "assistant-download";
+            viewLink.textContent = "👁 View " + data.filename;
+            var downloadLink = document.createElement("a");
+            downloadLink.href = data.url;
+            downloadLink.className = "assistant-download";
+            downloadLink.textContent = "⬇ Download";
+            var actions = document.createElement("div");
+            actions.className = "report-actions";
+            actions.appendChild(viewLink);
+            actions.appendChild(downloadLink);
             container.innerHTML = "";
-            container.appendChild(link);
+            container.appendChild(actions);
           })
           .catch(function () {});
       }
@@ -762,6 +896,36 @@
       form.addEventListener("submit", function (e) {
         e.preventDefault();
         sendMessage(input.value);
+      });
+
+      // Direct lookup - same renderCard() the chat path uses, just fed by
+      // GET /api/transformer/<id> instead of a focus_id from the LLM, so
+      // the prediction card (and its Compare/History/Report buttons) is
+      // reachable even when the AI chat has no ANTHROPIC_API_KEY configured.
+      var lookupInput = document.getElementById("direct-lookup-input");
+      var lookupBtn = document.getElementById("direct-lookup-btn");
+      var lookupError = document.getElementById("direct-lookup-error");
+
+      function directLookup() {
+        var id = lookupInput.value.trim();
+        lookupError.hidden = true;
+        if (!id) return;
+        fetch("/api/transformer/" + encodeURIComponent(id))
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+          .then(function (result) {
+            if (!result.ok || result.data.error) {
+              lookupError.textContent = (result.data && result.data.error) || "Not found.";
+              lookupError.hidden = false;
+              return;
+            }
+            renderCard(result.data);
+          })
+          .catch(function () { lookupError.textContent = "Something went wrong."; lookupError.hidden = false; });
+      }
+
+      lookupBtn.addEventListener("click", directLookup);
+      lookupInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); directLookup(); }
       });
 
       // Suggested-question chips: click to send immediately, no typing

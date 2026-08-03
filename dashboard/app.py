@@ -49,11 +49,11 @@ auth.init_db()
 # the actual access boundary.
 PANEL_ROLES = {
     "home": set(auth.ROLES),
-    "assistant": {"administrator", "engineer", "operator", "asset_manager"},
-    "transformer": {"administrator", "engineer", "operator", "asset_manager"},
-    "meter": {"administrator", "engineer", "operator", "asset_manager"},
-    "feeder": {"administrator", "engineer", "operator", "asset_manager"},
-    "reports": {"administrator", "engineer", "operator", "asset_manager"},
+    "assistant": {"administrator", "engineer"},
+    "transformer": {"administrator", "engineer"},
+    "meter": {"administrator", "engineer"},
+    "feeder": {"administrator", "engineer"},
+    "reports": {"administrator", "engineer"},
     "settings": {"administrator"},
 }
 
@@ -197,6 +197,8 @@ def build_panel(
         "tier_color_map": dict(zip(tier_order, STATUS_COLORS)),
         "landscape_html": landscape_html,
         "landscape_caption": landscape_caption,
+        "landscape_labels": landscape_labels,
+        "tier_order": tier_order,
     }
 
 
@@ -452,7 +454,7 @@ def _load_transformer_full():
 
 
 @app.route("/api/transformer/<transformer_id>")
-@auth.roles_required("administrator", "engineer", "operator", "asset_manager")
+@auth.roles_required(*PANEL_ROLES["transformer"])
 def transformer_detail(transformer_id):
     full = _load_transformer_full()
     match = full[full["transformer_id"] == transformer_id]
@@ -478,7 +480,7 @@ def transformer_detail(transformer_id):
 
 
 @app.route("/api/transformer/<transformer_id>/history")
-@auth.roles_required("administrator", "engineer", "operator", "asset_manager")
+@auth.roles_required(*PANEL_ROLES["transformer"])
 def transformer_history(transformer_id):
     full = _load_transformer_full()
     match = full[full["transformer_id"] == transformer_id]
@@ -524,7 +526,7 @@ def transformer_history(transformer_id):
 
 
 @app.route("/api/transformer/<transformer_id>/compare/<other_id>")
-@auth.roles_required("administrator", "engineer", "operator", "asset_manager")
+@auth.roles_required(*PANEL_ROLES["transformer"])
 def transformer_compare(transformer_id, other_id):
     full = _load_transformer_full()
     a_match = full[full["transformer_id"] == transformer_id]
@@ -592,11 +594,12 @@ def list_reports():
 @app.route("/reports/<path:filename>")
 @auth.login_required
 def reports(filename):
-    # as_attachment=True: without it, send_from_directory serves the PDF
-    # inline (Content-Disposition: inline), so a browser with a built-in PDF
-    # viewer just opens it in the tab instead of downloading it - not what
-    # the "Download <file>.pdf" link/button in the AI Assistant card implies.
-    return send_from_directory(REPORTS, filename, as_attachment=True)
+    # as_attachment=True (the default here) forces a download; ?view=1
+    # serves the same file inline (Content-Disposition: inline) so a
+    # browser's built-in PDF viewer opens it in a new tab instead - the
+    # "View" vs "Download" choice the UI now offers for the same file.
+    inline = request.args.get("view") == "1"
+    return send_from_directory(REPORTS, filename, as_attachment=not inline)
 
 
 # --------------------------------------------------------------------------
@@ -641,6 +644,42 @@ def admin_activity():
 @auth.roles_required("administrator")
 def admin_datasets():
     return jsonify({"datasets": auth.dataset_stats()})
+
+
+@app.route("/api/admin/technicians")
+@auth.roles_required("administrator")
+def admin_technicians():
+    return jsonify({"technicians": auth.list_technicians()})
+
+
+@app.route("/api/admin/technicians/<int:technician_id>/assignments", methods=["GET", "POST"])
+@auth.roles_required("administrator")
+def admin_technician_assignments(technician_id):
+    if request.method == "POST":
+        transformer_id = (request.get_json(silent=True) or {}).get("transformer_id", "").strip()
+        valid_ids = set(pd.read_csv(DATA / "transformer_data.csv")["transformer_id"])
+        if transformer_id not in valid_ids:
+            return jsonify({"error": f"{transformer_id} is not a known transformer id"}), 400
+        auth.assign_transformer(technician_id, transformer_id)
+        auth.log_activity(auth.current_user(), f"assigned {transformer_id} to technician #{technician_id}")
+        return jsonify({"ok": True}), 201
+
+    assigned_ids = auth.get_assigned_transformer_ids(technician_id)
+    full = _load_transformer_full()
+    rows = full[full["transformer_id"].isin(assigned_ids)]
+    items = [
+        {"id": row["transformer_id"], "cnc": row["cnc"], "risk_tier": row["risk_tier"], "status": row["status"]}
+        for _, row in rows.iterrows()
+    ]
+    return jsonify({"assignments": items})
+
+
+@app.route("/api/admin/technicians/<int:technician_id>/assignments/<transformer_id>", methods=["DELETE"])
+@auth.roles_required("administrator")
+def admin_technician_unassign(technician_id, transformer_id):
+    auth.unassign_transformer(technician_id, transformer_id)
+    auth.log_activity(auth.current_user(), f"unassigned {transformer_id} from technician #{technician_id}")
+    return jsonify({"ok": True})
 
 
 # --------------------------------------------------------------------------
