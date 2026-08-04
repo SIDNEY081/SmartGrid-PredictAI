@@ -14,7 +14,9 @@ Then open http://127.0.0.1:5000
 import json
 import os
 import re
+import secrets
 from datetime import datetime
+from functools import wraps
 from pathlib import Path
 
 import anthropic
@@ -27,6 +29,7 @@ import ai_tools
 import auth
 import chatbot
 import knowledge_base
+import powerbi_data
 import report
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -42,6 +45,17 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.teardown_appcontext(auth.close_db)
 auth.init_db()
+
+# API key for the read-only /api/powerbi/* routes below - generated once and
+# persisted to disk (not gitignored-secret-worthy, just a local prototype
+# credential) so it survives app restarts and a Power BI Service connection
+# keeps working instead of breaking every time the dev server reloads.
+POWERBI_KEY_PATH = DATA / "powerbi_api_key.txt"
+if POWERBI_KEY_PATH.exists():
+    POWERBI_API_KEY = POWERBI_KEY_PATH.read_text().strip()
+else:
+    POWERBI_API_KEY = secrets.token_urlsafe(32)
+    POWERBI_KEY_PATH.write_text(POWERBI_API_KEY)
 
 # Roles allowed into each nav panel - enforced both server-side (route
 # decorators below) and client-side (index.html only renders the nav
@@ -771,5 +785,38 @@ def technician_inspection():
     return jsonify({"ok": True})
 
 
+# --------------------------------------------------------------------------
+# Power BI API - read-only JSON versions of powerbi_data.py's tables, for
+# Power BI Service's scheduled refresh (its Web connector can't read local
+# files, unlike Power BI Desktop's Python-script connector). Key-gated
+# rather than session-gated: Power BI's Web connector authenticates with a
+# static header/query param, not a login flow.
+# --------------------------------------------------------------------------
+def powerbi_key_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        key = request.headers.get("X-API-Key") or request.args.get("api_key")
+        if key != POWERBI_API_KEY:
+            return jsonify({"error": "missing or invalid API key"}), 401
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
+@app.route("/api/powerbi/<table_name>")
+@powerbi_key_required
+def powerbi_table(table_name):
+    builder = powerbi_data.TABLES.get(table_name)
+    if builder is None:
+        return jsonify({"error": f"unknown table '{table_name}'", "tables": sorted(powerbi_data.TABLES)}), 404
+    df = builder()
+    return app.response_class(df.to_json(orient="records", date_format="iso"), mimetype="application/json")
+
+
 if __name__ == "__main__":
+    print("=" * 60)
+    print("Power BI API key (Web connector, header X-API-Key or ?api_key=):")
+    print(f"  {POWERBI_API_KEY}")
+    print(f"  Tables: {', '.join(sorted(powerbi_data.TABLES))}")
+    print("=" * 60)
     app.run(debug=True, port=5000)

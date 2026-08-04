@@ -6,3 +6,4 @@ __pycache__/
 reports/
 data/app.db
 data/inspection_uploads/
+data/powerbi_api_key.txt
