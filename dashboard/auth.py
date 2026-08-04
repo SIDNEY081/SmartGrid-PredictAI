@@ -22,7 +22,7 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 
-from flask import g, redirect, request, session, url_for
+from flask import g, has_app_context, redirect, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -54,7 +54,14 @@ def _now():
 
 def get_db():
     """One connection per request, cached on flask.g - the standard Flask
-    + sqlite3 pattern."""
+    + sqlite3 pattern. Falls back to a fresh, short-lived connection when
+    called with no Flask request active (PDF report generation reached from
+    streamlit_app.py or a test, neither of which has an app context)."""
+    if not has_app_context():
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        return conn
     if "db" not in g:
         g.db = sqlite3.connect(DB_PATH)
         g.db.row_factory = sqlite3.Row

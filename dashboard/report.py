@@ -18,8 +18,9 @@ import pandas as pd
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
+import auth
 import knowledge_base
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -103,6 +104,37 @@ def generate_pdf_report(transformer_id, data_dir, out_dir=None):
     story.append(Paragraph("Recommended Actions", styles["Heading2"]))
     for action in knowledge_base.MAINTENANCE_ACTIONS.get(tier, []):
         story.append(Paragraph(f"&bull; {action}", styles["Normal"]))
+    story.append(Spacer(1, 14))
+
+    story.append(Paragraph("Field Inspection History", styles["Heading2"]))
+    inspections = auth.get_inspection_history(transformer_id, limit=5)
+    if inspections:
+        insp_rows = [["Date", "Technician", "Status", "Notes"]]
+        for insp in inspections:
+            insp_rows.append([
+                insp["created_at"][:10],
+                insp["technician_name"],
+                insp["status"].replace("_", " ").title(),
+                Paragraph(insp["notes"] or "-", styles["Normal"]),
+            ])
+        insp_table = Table(insp_rows, colWidths=[65, 110, 85, 190])
+        insp_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f2f2f2")]),
+        ]))
+        story.append(insp_table)
+
+        latest_photo = next((i["photo_filename"] for i in inspections if i["photo_filename"]), None)
+        if latest_photo and (auth.UPLOAD_DIR / latest_photo).exists():
+            story.append(Spacer(1, 10))
+            story.append(Paragraph("Latest Inspection Photo", styles["Heading3"]))
+            story.append(Image(str(auth.UPLOAD_DIR / latest_photo), width=220, height=165, kind="proportional"))
+    else:
+        story.append(Paragraph("No field inspections recorded yet.", styles["Normal"]))
 
     doc = SimpleDocTemplate(str(out_path), pagesize=A4, title=f"{transformer_id} Maintenance Report")
     doc.build(story)
