@@ -29,7 +29,6 @@ import ai_tools
 import auth
 import chatbot
 import knowledge_base
-import powerbi_data
 import report
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -44,6 +43,12 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(24)
 app.teardown_appcontext(auth.close_db)
 auth.init_db()
+
+# Imported only after init_db() - its module-level DataFrames (for the Power
+# BI Desktop connector) run SQL queries against app.db at import time, which
+# would fail with "no such table: users" on a fresh DB that hasn't been
+# seeded yet (e.g. a brand new deploy).
+import powerbi_data
 
 # API key for the read-only /api/powerbi/* routes below - generated once and
 # persisted to disk (not gitignored-secret-worthy, just a local prototype
