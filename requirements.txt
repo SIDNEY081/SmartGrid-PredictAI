@@ -12,6 +12,10 @@ joblib
 flask
 streamlit
 
+# Production WSGI server (Linux-only; used to serve dashboard/app.py in
+# deployment - see Procfile / render.yaml)
+gunicorn
+
 # Visualization
 plotly
 

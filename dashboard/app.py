@@ -38,11 +38,10 @@ REPORTS = ROOT / "reports"
 
 app = Flask(__name__)
 # Signs both the login session cookie and the chat follow-up context (last
-# id/entity asked about); regenerated per process, so restarting the app
-# just signs everyone out and resets any open conversations rather than
-# needing a stable stored secret - fine for this prototype, not for a real
-# production deployment.
-app.secret_key = os.urandom(24)
+# id/entity asked about). Falls back to a per-process random key for local
+# dev; set SECRET_KEY in production so restarts (e.g. a free-tier host
+# spinning the dyno down after idle) don't invalidate every open session.
+app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(24)
 app.teardown_appcontext(auth.close_db)
 auth.init_db()
 
