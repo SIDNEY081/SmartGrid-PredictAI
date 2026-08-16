@@ -147,10 +147,17 @@ def tier_chart(counts, tier_order, entity_label):
         ),
         bargap=0.35,
         margin=dict(l=40, r=20, t=36, b=40),
-        height=260,
+        autosize=True,
         showlegend=False,
     )
-    return fig.to_html(full_html=False, include_plotlyjs=False, config={"displayModeBar": False})
+    # No fixed height - fills chart-wrap's stretched grid-row height (see
+    # .content-grid / .chart-wrap in style.css) instead of leaving blank
+    # space when the table next to it (e.g. the feeder-grouped transformer
+    # worklist) is taller than a fixed 260px chart would be.
+    return fig.to_html(
+        full_html=False, include_plotlyjs=False,
+        config={"displayModeBar": False, "responsive": True},
+    )
 
 
 def landscape_chart(df, x_col, y_col, z_col, tier_col, id_col, labels, tier_order):

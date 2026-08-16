@@ -276,11 +276,25 @@ section.panel[data-panel="feeder"] .stat-tile:hover { border-color: #1baf7a; }
   display: grid;
   grid-template-columns: 0.9fr 1.3fr;
   gap: 24px;
-  align-items: start;
+  align-items: stretch;
+}
+
+/* Stretched to match table-wrap's height instead of sitting at a fixed
+   260px with blank space below it once the table grows taller (e.g. the
+   feeder-grouped transformer worklist) - the chart itself has no fixed
+   height (see tier_chart() in app.py) so it fills whatever this resolves to. */
+.chart-wrap {
+  min-height: 320px;
+}
+
+.chart-wrap .js-plotly-plot,
+.chart-wrap .plot-container {
+  height: 100%;
 }
 
 @media (max-width: 900px) {
-  .content-grid { grid-template-columns: 1fr; }
+  .content-grid { grid-template-columns: 1fr; align-items: start; }
+  .chart-wrap { min-height: 260px; }
   .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
