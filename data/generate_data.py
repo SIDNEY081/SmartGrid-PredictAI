@@ -271,7 +271,7 @@ def generate_feeder_data(transformer_df, topology=None, n=N_FEEDERS, seed=RANDOM
 
     # Ground-truth count of at-risk transformers per feeder, used only to
     # shape the outage label below - not exposed as a feature. The model
-    # instead sees each feeder's *predicted* critical-tier transformer count
+    # instead sees each feeder's *predicted* emergency-tier transformer count
     # (models/outage_forecasting.py joins in transformer_risk_scores.csv),
     # which is a noisier, more realistic stand-in for this.
     risky_counts = (

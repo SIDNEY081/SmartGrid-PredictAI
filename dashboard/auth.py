@@ -6,10 +6,14 @@ hashing (werkzeug, already a Flask dependency), real sessions, real
 per-role data (technician assignments, inspection submissions, an activity
 log) - not a cosmetic login screen in front of an otherwise-open app.
 
-Three roles, matching an Eskom-style operations team:
+Four roles, matching an Eskom-style operations team:
     administrator   - manage users, full visibility, system/dataset info
-    engineer        - run predictions, generate reports, use the AI Assistant
-    technician      - view assigned transformers, submit inspections
+    engineer        - run predictions, generate reports, use the AI Assistant,
+                      assign transformers to technicians
+    investigator    - Revenue Protection Officer: assign technicians to
+                      meters flagged for suspected theft
+    technician      - view assigned transformers/meters, submit inspections
+                      and theft investigations
 
 The database lives at data/app.db, separate from the synthetic asset CSVs
 in the same folder. init_db() creates the schema and seeds three demo
@@ -29,10 +33,11 @@ ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = ROOT / "data" / "app.db"
 UPLOAD_DIR = ROOT / "data" / "inspection_uploads"
 
-ROLES = ["administrator", "engineer", "technician"]
+ROLES = ["administrator", "engineer", "investigator", "technician"]
 ROLE_LABELS = {
     "administrator": "System Administrator",
     "engineer": "Maintenance Engineer",
+    "investigator": "Revenue Protection Officer",
     "technician": "Field Technician",
 }
 
@@ -41,11 +46,14 @@ ROLE_LABELS = {
 DEMO_ACCOUNTS = [
     ("admin", "admin123", "Sidney Mpenyana", "administrator"),
     ("engineer", "engineer123", "Sipho Dlamini", "engineer"),
+    ("investigator", "investigator123", "Naledi Sithole", "investigator"),
     ("technician", "tech123", "Lerato Mokoena", "technician"),
 ]
-# How many transformers the demo technician account starts with assigned -
-# a real row in the assignments table, not a value invented at answer time.
+# How many transformers/meters the demo technician account starts with
+# assigned - real rows in the assignments/meter_assignments tables, not a
+# value invented at answer time.
 DEMO_ASSIGNMENT_COUNT = 12
+DEMO_METER_ASSIGNMENT_COUNT = 5
 
 
 def _now():
@@ -113,6 +121,24 @@ def init_db():
             created_at TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS meter_assignments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            technician_id INTEGER NOT NULL REFERENCES users(id),
+            meter_id TEXT NOT NULL,
+            assigned_at TEXT NOT NULL,
+            UNIQUE(technician_id, meter_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS meter_investigations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            meter_id TEXT NOT NULL,
+            technician_id INTEGER NOT NULL REFERENCES users(id),
+            status TEXT NOT NULL,
+            notes TEXT,
+            photo_filename TEXT,
+            created_at TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS activity_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER REFERENCES users(id),
@@ -160,11 +186,63 @@ def init_db():
                     )
                 conn.commit()
 
+            meter_csv = ROOT / "data" / "meter_theft_scores.csv"
+            if meter_csv.exists():
+                import pandas as pd
+
+                flagged = pd.read_csv(meter_csv)
+                flagged = flagged[flagged["investigation_flag"] == 1]["meter_id"].tolist()
+                sample = flagged[:DEMO_METER_ASSIGNMENT_COUNT]
+                for meter_id in sample:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO meter_assignments (technician_id, meter_id, assigned_at) "
+                        "VALUES (?, ?, ?)",
+                        (technician_id, meter_id, _now()),
+                    )
+                conn.commit()
+
         print("=" * 60)
         print("SmartGrid PredictAI - demo accounts seeded in data/app.db")
         for username, password, full_name, role in DEMO_ACCOUNTS:
             print(f"  {username:<12} / {password:<14} {ROLE_LABELS[role]}")
         print("=" * 60)
+
+    else:
+        # Backfill for a database seeded before the investigator role and
+        # meter-investigation workflow existed - additive only, never
+        # touches existing users/assignments/inspections.
+        existing_usernames = {
+            row[0] for row in conn.execute("SELECT username FROM users").fetchall()
+        }
+        for username, password, full_name, role in DEMO_ACCOUNTS:
+            if username in existing_usernames:
+                continue
+            conn.execute(
+                "INSERT INTO users (username, password_hash, full_name, role, is_active, created_at) "
+                "VALUES (?, ?, ?, ?, 1, ?)",
+                (username, generate_password_hash(password), full_name, role, _now()),
+            )
+            conn.commit()
+            print(f"SmartGrid PredictAI - added new demo account: {username} / {password} ({ROLE_LABELS[role]})")
+
+        technician_row = conn.execute(
+            "SELECT id FROM users WHERE role = 'technician' ORDER BY created_at LIMIT 1"
+        ).fetchone()
+        has_meter_assignments = conn.execute("SELECT COUNT(*) FROM meter_assignments").fetchone()[0]
+        if technician_row is not None and has_meter_assignments == 0:
+            meter_csv = ROOT / "data" / "meter_theft_scores.csv"
+            if meter_csv.exists():
+                import pandas as pd
+
+                flagged = pd.read_csv(meter_csv)
+                flagged = flagged[flagged["investigation_flag"] == 1]["meter_id"].tolist()
+                for meter_id in flagged[:DEMO_METER_ASSIGNMENT_COUNT]:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO meter_assignments (technician_id, meter_id, assigned_at) "
+                        "VALUES (?, ?, ?)",
+                        (technician_row[0], meter_id, _now()),
+                    )
+                conn.commit()
 
     conn.close()
 
@@ -285,6 +363,70 @@ def get_recent_inspections_by_technician(technician_id, days=90, limit=50):
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="seconds")
     rows = get_db().execute(
         "SELECT i.*, u.full_name AS technician_name FROM inspections i "
+        "JOIN users u ON u.id = i.technician_id "
+        "WHERE i.technician_id = ? AND i.created_at >= ? ORDER BY i.created_at DESC LIMIT ?",
+        (technician_id, cutoff, limit),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+# --------------------------------------------------------------------------
+# Technician meter assignments + theft investigations - same shape as the
+# transformer assignments/inspections above, kept as separate tables/
+# functions rather than a shared "entity_id" column since meters have no
+# feeder/substation hierarchy and a different investigation status
+# vocabulary (confirmed_theft/false_positive instead of needs_followup).
+# --------------------------------------------------------------------------
+def get_assigned_meter_ids(technician_id):
+    rows = get_db().execute(
+        "SELECT meter_id FROM meter_assignments WHERE technician_id = ? ORDER BY assigned_at", (technician_id,)
+    ).fetchall()
+    return [r["meter_id"] for r in rows]
+
+
+def assign_meter(technician_id, meter_id):
+    db = get_db()
+    db.execute(
+        "INSERT OR IGNORE INTO meter_assignments (technician_id, meter_id, assigned_at) VALUES (?, ?, ?)",
+        (technician_id, meter_id, _now()),
+    )
+    db.commit()
+
+
+def unassign_meter(technician_id, meter_id):
+    db = get_db()
+    db.execute(
+        "DELETE FROM meter_assignments WHERE technician_id = ? AND meter_id = ?",
+        (technician_id, meter_id),
+    )
+    db.commit()
+
+
+def submit_meter_investigation(meter_id, technician_id, status, notes, photo_filename):
+    db = get_db()
+    cur = db.execute(
+        "INSERT INTO meter_investigations (meter_id, technician_id, status, notes, photo_filename, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (meter_id, technician_id, status, notes, photo_filename, _now()),
+    )
+    db.commit()
+    return cur.lastrowid
+
+
+def get_meter_investigation_history(meter_id, limit=10):
+    rows = get_db().execute(
+        "SELECT i.*, u.full_name AS technician_name FROM meter_investigations i "
+        "JOIN users u ON u.id = i.technician_id "
+        "WHERE i.meter_id = ? ORDER BY i.created_at DESC LIMIT ?",
+        (meter_id, limit),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_recent_meter_investigations_by_technician(technician_id, days=90, limit=50):
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="seconds")
+    rows = get_db().execute(
+        "SELECT i.*, u.full_name AS technician_name FROM meter_investigations i "
         "JOIN users u ON u.id = i.technician_id "
         "WHERE i.technician_id = ? AND i.created_at >= ? ORDER BY i.created_at DESC LIMIT ?",
         (technician_id, cutoff, limit),

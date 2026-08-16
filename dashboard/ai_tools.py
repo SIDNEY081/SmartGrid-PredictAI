@@ -66,7 +66,7 @@ def get_transformer_history(transformer_id: str) -> str:
 
 @beta_tool
 def get_transformer_details(transformer_id: str) -> str:
-    """Get a transformer's asset details: transformer name, CNC, substation, feeder, pole id/GPS coordinates, capacity, installation year, Healthy/Warning/Critical status, current risk tier, and whether it's flagged for action.
+    """Get a transformer's asset details: transformer name, CNC, substation, feeder, pole id/GPS coordinates, capacity, installation year, Healthy/Warning/Emergency status, current risk tier, and whether it's flagged for action.
 
     Args:
         transformer_id: The transformer's id, e.g. "T0208".
@@ -129,16 +129,16 @@ def query_fleet(
     want_reasons: bool = False,
     top_n: int = 10,
 ) -> str:
-    """Query across the whole fleet of transformers, meters, or feeders: a count, a top-N list by risk score, an average score, or the most common reasons behind a tier's risk. Transformers and feeders can also be filtered by any combination of CNC, substation, feeder, and Healthy/Warning/Critical status - e.g. "CNC: Tzaneen, Feeder: F007, Status: Critical".
+    """Query across the whole fleet of transformers, meters, or feeders: a count, a top-N list by risk score, an average score, or the most common reasons behind a tier's risk. Transformers and feeders can also be filtered by any combination of CNC, substation, feeder, and Healthy/Warning/Emergency status - e.g. "CNC: Tzaneen, Feeder: F007, Status: Emergency".
 
     Args:
         entity: Which asset type: "transformer", "meter", or "feeder".
-        tier: Filter to one severity tier: "low", "moderate", "elevated", or "critical". Leave empty for no tier filter.
-        status: Filter to one simplified status: "Healthy", "Warning", or "Critical". Transformers and feeders only.
+        tier: Filter to one severity tier: "low", "moderate", "elevated", or "emergency". Leave empty for no tier filter.
+        status: Filter to one simplified status: "Healthy", "Warning", or "Emergency". Transformers and feeders only.
         cnc: Filter to one CNC (control & network centre / regional area), e.g. "Tzaneen". Transformers and feeders only.
         substation_id: Filter to one substation id, e.g. "SS-TZN-01". Transformers and feeders only.
         feeder_id: Filter to one feeder id, e.g. "F007". Transformers only.
-        high_risk_only: If true, filter to elevated-or-critical tier (overrides `tier`).
+        high_risk_only: If true, filter to elevated-or-emergency tier (overrides `tier`).
         flagged_only: If true, filter to only assets flagged for action.
         want_average: If true, return the average score for the filtered set instead of a list.
         want_reasons: If true, return the most common reasons behind the filtered set's risk - only meaningful together with a tier filter or high_risk_only.

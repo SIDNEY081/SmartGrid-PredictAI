@@ -6,7 +6,7 @@ Supervised classification model that predicts the probability a feeder
 within the next 7 days.
 
 Unlike the other two models, this one consumes another model's output:
-critical_transformer_count comes from data/transformer_risk_scores.csv
+emergency_transformer_count comes from data/transformer_risk_scores.csv
 (models/failure_prediction.py), aggregated per feeder. Run
 failure_prediction.py first.
 """
@@ -25,7 +25,7 @@ import explain
 FEATURES = [
     "feeder_age_years", "vegetation_encroachment_score", "protection_equipment_age",
     "peak_load_pct", "load_growth_rate", "historical_outage_count_1yr",
-    "critical_transformer_count",
+    "emergency_transformer_count",
 ]
 TARGET = "outage_within_7_days"
 
@@ -35,12 +35,12 @@ TARGET = "outage_within_7_days"
 CAPACITY_FRACTION = 0.15
 
 # Numeric companion to risk_tier so BI tools (Power BI, Tableau) can sort by
-# severity instead of alphabetically (Critical, Elevated, Low, Moderate).
-TIER_ORDER = {"low": 1, "moderate": 2, "elevated": 3, "critical": 4}
+# severity instead of alphabetically (Emergency, Elevated, Low, Moderate).
+TIER_ORDER = {"low": 1, "moderate": 2, "elevated": 3, "emergency": 4}
 
 # Same 3-value collapse as models/failure_prediction.py's TIER_TO_STATUS, so
-# feeders and transformers expose the same Healthy/Warning/Critical vocabulary.
-TIER_TO_STATUS = {"low": "Healthy", "moderate": "Warning", "elevated": "Warning", "critical": "Critical"}
+# feeders and transformers expose the same Healthy/Warning/Emergency vocabulary.
+TIER_TO_STATUS = {"low": "Healthy", "moderate": "Warning", "elevated": "Warning", "emergency": "Emergency"}
 
 
 def load_data(
@@ -50,14 +50,14 @@ def load_data(
     feeder_df = pd.read_csv(feeder_path)
     risk_df = pd.read_csv(transformer_scores_path)
 
-    critical_counts = (
-        risk_df[risk_df["risk_tier"] == "critical"]
+    emergency_counts = (
+        risk_df[risk_df["risk_tier"] == "emergency"]
         .groupby("feeder_id")
         .size()
-        .rename("critical_transformer_count")
+        .rename("emergency_transformer_count")
     )
-    feeder_df = feeder_df.merge(critical_counts, on="feeder_id", how="left")
-    feeder_df["critical_transformer_count"] = feeder_df["critical_transformer_count"].fillna(0)
+    feeder_df = feeder_df.merge(emergency_counts, on="feeder_id", how="left")
+    feeder_df["emergency_transformer_count"] = feeder_df["emergency_transformer_count"].fillna(0)
     return feeder_df
 
 
@@ -103,7 +103,7 @@ def score_all_feeders(model, df, capacity_fraction=CAPACITY_FRACTION, explain_pr
     result["outage_risk_score"] = (proba * 100).round(1)
     result["risk_tier"] = pd.cut(
         result["outage_risk_score"], bins=[-0.1, 20, 50, 75, 100],
-        labels=["low", "moderate", "elevated", "critical"]
+        labels=["low", "moderate", "elevated", "emergency"]
     )
     result["risk_tier_order"] = result["risk_tier"].map(TIER_ORDER)
     result["status"] = result["risk_tier"].map(TIER_TO_STATUS)

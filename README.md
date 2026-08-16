@@ -58,15 +58,23 @@ enforced server-side on every route - not just a hidden nav button.
 | Role | Username | Password | Sees |
 |---|---|---|---|
 | System Administrator | `admin` | `admin123` | Everything, plus Settings (user management, dataset stats, activity log) |
-| Maintenance Engineer | `engineer` | `engineer123` | Dashboard, Transformer/Meter/Feeder tabs, AI Assistant, Reports |
-| Field Technician | `technician` | `tech123` | Only their assigned transformers - AI recommendations + inspection submission (status, notes, optional photo) |
+| Maintenance Engineer | `engineer` | `engineer123` | Transformer/Feeder tabs, AI Assistant, Reports, Assign Technicians (transformer maintenance dispatch) |
+| Revenue Protection Officer | `investigator` | `investigator123` | Meter Theft Detection tab, Assign Investigators (technician dispatch for suspected theft) |
+| Field Technician | `technician` | `tech123` | Only their assigned transformers/meters - AI recommendations + inspection/investigation submission (status, notes, optional photo) |
+
+Panels are split by domain, not seniority: the engineer owns asset
+reliability (transformers/feeders) and the investigator owns revenue
+protection (meter theft) - neither sees the other's dashboard, since a role
+should never have view access to a panel it has no action on. The
+Administrator sees and can act on both.
 
 These are demo credentials for this prototype, printed to the console the
 first time `dashboard/app.py` seeds `data/app.db` - not a real secret
 store. The Administrator's Settings panel can create additional accounts
-for any role. The demo Field Technician starts with 12 transformers
-pre-assigned (`auth.py`'s `DEMO_ASSIGNMENT_COUNT`), so the account is
-useful the moment you log in.
+for any role. The demo Field Technician starts with 12 transformers and 5
+meters pre-assigned (`auth.py`'s `DEMO_ASSIGNMENT_COUNT` /
+`DEMO_METER_ASSIGNMENT_COUNT`), so the account is useful the moment you
+log in.
 
 The Streamlit console (`dashboard/streamlit_app.py`) has no login - it's
 the single-user exploratory tool; the Flask app is the multi-role
@@ -120,9 +128,9 @@ declared — a classic real-world signature of bypass or tampering.
 Feeder-level outage history is Eskom's own labeled record, same reasoning as
 failure prediction. The interesting part is the feature set: alongside a
 feeder's own condition (age, vegetation encroachment, protection equipment
-age, load, historical outages), it includes `critical_transformer_count` —
+age, load, historical outages), it includes `emergency_transformer_count` —
 how many transformers on that feeder the failure model already flagged
-`critical` — pulled from `data/transformer_risk_scores.csv`. That's the one
+`emergency` — pulled from `data/transformer_risk_scores.csv`. That's the one
 place these three models actually talk to each other: a feeder with several
 already-risky transformers on it is a more plausible near-term outage than
 one judged purely on its own attributes. Run `models/failure_prediction.py`
@@ -234,7 +242,7 @@ Report / View History / Compare actions. The two apps answer it differently:
 **Power BI / Tableau**: `transformer_risk_scores.csv`, `meter_theft_scores.csv`,
 and `feeder_outage_scores.csv` are meant to be imported directly (Get Data ->
 Text/CSV) - no server needed. Each has a numeric `*_tier_order` column
-(1=low … 4=critical) alongside the text tier column, so BI tools can sort by
+(1=low … 4=emergency) alongside the text tier column, so BI tools can sort by
 severity instead of alphabetically. `transformer_risk_scores.csv` and
 `feeder_outage_scores.csv` share a `feeder_id` column if you want to relate
 them in the data model.
@@ -281,7 +289,7 @@ data model for them):
   a linear fit over `data/transformer_history.csv`'s 12 monthly readings.
 - **`compare T0208 and T0301`** — side-by-side risk/health/temperature/load.
 - **`which transformers are high-risk?`** — a two-tier alias for
-  elevated+critical, alongside the existing single-tier questions.
+  elevated+emergency, alongside the existing single-tier questions.
 - **`generate report for T0208`** — writes a one-page PDF via
   `dashboard/report.py` (reportlab) to `reports/`; the Flask app serves it
   at `/reports/<name>.pdf`.

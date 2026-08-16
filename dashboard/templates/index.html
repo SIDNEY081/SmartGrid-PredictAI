@@ -41,6 +41,12 @@
         {% if "reports" in allowed_panels %}
         <button type="button" class="tab-btn" data-panel="reports">📄&nbsp;Reports</button>
         {% endif %}
+        {% if "assignments" in allowed_panels %}
+        <button type="button" class="tab-btn" data-panel="assignments">👷&nbsp;Assign Technicians</button>
+        {% endif %}
+        {% if "meter_assignments" in allowed_panels %}
+        <button type="button" class="tab-btn" data-panel="meter_assignments">🔍&nbsp;Assign Investigators</button>
+        {% endif %}
         {% if "settings" in allowed_panels %}
         <button type="button" class="tab-btn" data-panel="settings">⚙️&nbsp;Settings</button>
         {% endif %}
@@ -69,26 +75,51 @@
         <p class="assistant-sub">Manage users, review datasets, and view the full activity log under <strong>⚙️ Settings</strong>.</p>
 
         {% elif home.kind == "technician" %}
-        <h2>🏠&nbsp;My Transformers</h2>
-        <p class="assistant-sub">Transformers assigned to you, with the AI's current prediction and recommended actions. Submit an inspection after visiting a site.</p>
+        <h2>🏠&nbsp;My Work</h2>
+        <p class="assistant-sub">Transformers and meters assigned to you, with the AI's current prediction and recommended actions. Submit results after visiting a site.</p>
 
-        <div class="tech-subtabs">
-          <button type="button" class="tech-subtab-btn active" data-tech-sub="assigned">Assigned</button>
-          <button type="button" class="tech-subtab-btn" data-tech-sub="recent">Recently Inspected</button>
+        <div class="tech-entity-tabs">
+          <button type="button" class="tech-entity-btn active" data-tech-entity="transformer">🔌&nbsp;Transformers</button>
+          <button type="button" class="tech-entity-btn" data-tech-entity="meter">🔍&nbsp;Meters</button>
         </div>
 
-        <div class="tech-subpanel" data-tech-sub="assigned">
-          <label class="tech-select-label" for="technician-select">Select a transformer</label>
-          <select id="technician-select" hidden></select>
-          <div id="technician-list" class="technician-list">
-            <p class="assistant-placeholder">Loading your assignments…</p>
+        <div class="tech-entity-panel" data-tech-entity="transformer">
+          <div class="tech-subtabs">
+            <button type="button" class="tech-subtab-btn active" data-tech-sub="assigned">Assigned</button>
+            <button type="button" class="tech-subtab-btn" data-tech-sub="recent">Recently Inspected</button>
+          </div>
+
+          <div class="tech-subpanel" data-tech-sub="assigned">
+            <div id="technician-list" class="technician-grid">
+              <p class="assistant-placeholder">Loading your assignments…</p>
+            </div>
+          </div>
+
+          <div class="tech-subpanel" data-tech-sub="recent" hidden>
+            <p class="assistant-sub">Inspections you've submitted in the last 3 months, most recent first.</p>
+            <div id="technician-recent-list" class="technician-list">
+              <p class="assistant-placeholder">Loading recent inspections…</p>
+            </div>
           </div>
         </div>
 
-        <div class="tech-subpanel" data-tech-sub="recent" hidden>
-          <p class="assistant-sub">Inspections you've submitted in the last 3 months, most recent first.</p>
-          <div id="technician-recent-list" class="technician-list">
-            <p class="assistant-placeholder">Loading recent inspections…</p>
+        <div class="tech-entity-panel" data-tech-entity="meter" hidden>
+          <div class="tech-subtabs">
+            <button type="button" class="tech-subtab-btn active" data-tech-sub="assigned">Assigned</button>
+            <button type="button" class="tech-subtab-btn" data-tech-sub="recent">Recently Investigated</button>
+          </div>
+
+          <div class="tech-subpanel" data-tech-sub="assigned">
+            <div id="meter-technician-list" class="technician-grid">
+              <p class="assistant-placeholder">Loading your meter assignments…</p>
+            </div>
+          </div>
+
+          <div class="tech-subpanel" data-tech-sub="recent" hidden>
+            <p class="assistant-sub">Theft investigations you've submitted in the last 3 months, most recent first.</p>
+            <div id="meter-technician-recent-list" class="technician-list">
+              <p class="assistant-placeholder">Loading recent investigations…</p>
+            </div>
           </div>
         </div>
 
@@ -129,7 +160,7 @@
 
         {% if "assistant" in allowed_panels %}
         <div class="embedded-assistant">
-          <h3 class="dash-section-title">🤖&nbsp;AI Assistant</h3>
+          <h3 class="dash-section-title">🤖&nbsp;Sidney</h3>
           <p class="assistant-sub">Ask about asset health, interpret predictions, diagnose faults, and get maintenance recommendations - Claude with real tool access to the scored fleet, never inventing a number.</p>
 
           <div class="assistant-grid">
@@ -197,6 +228,41 @@
           <div class="chart-wrap">{{ panel.chart_html | safe }}</div>
 
           <div class="table-wrap">
+            {% if panel.feeder_groups %}
+            <p class="assistant-sub">{{ panel.flagged }} flagged {{ panel.entity_label }} across {{ panel.feeder_groups|length }} feeders, worst feeder first - grouped for route planning.</p>
+            <div class="feeder-groups">
+              {% for group in panel.feeder_groups %}
+              <div class="feeder-group">
+                <h4 class="feeder-group-title">⚡&nbsp;Feeder {{ group.feeder_id }} <span class="feeder-group-count">({{ group.rows|length }} flagged)</span></h4>
+                <table class="score-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>{{ panel.score_label }}</th>
+                      <th>Tier</th>
+                      {% if panel.has_reasons %}<th>Why</th>{% endif %}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for row in group.rows %}
+                    <tr>
+                      <td>{{ row.id }}</td>
+                      <td>{{ "%.1f"|format(row.score) }}</td>
+                      <td>
+                        <span class="tier-badge">
+                          <span class="tier-dot" style="background: {{ panel.tier_color_map[row.tier] }}"></span>
+                          {{ row.tier | capitalize }}
+                        </span>
+                      </td>
+                      {% if panel.has_reasons %}<td class="reason-cell">{{ row.reasons }}</td>{% endif %}
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
             <table class="score-table">
               <thead>
                 <tr>
@@ -222,6 +288,7 @@
                 {% endfor %}
               </tbody>
             </table>
+            {% endif %}
           </div>
         </div>
 
@@ -258,10 +325,50 @@
       {% if "reports" in allowed_panels %}
       <section class="panel" data-panel="reports">
         <h2>📄&nbsp;Maintenance Reports</h2>
-        <p class="assistant-sub">Per-transformer PDF reports generated from the AI Assistant on your Dashboard. Generate a new one from a transformer's prediction card.</p>
+        <p class="assistant-sub">Per-transformer PDF reports generated from Sidney on your Dashboard. Generate a new one from a transformer's prediction card.</p>
         <div id="reports-list" class="technician-list">
           <p class="assistant-placeholder">Loading reports…</p>
         </div>
+      </section>
+      {% endif %}
+
+      <!-- ================= Assign Technicians (engineer / administrator) ================= -->
+      {% if "assignments" in allowed_panels %}
+      <section class="panel" data-panel="assignments">
+        <h2>👷&nbsp;Assign Technicians</h2>
+        <p class="assistant-sub">Assign specific transformers to a technician, based on their risk level - a newly created technician starts with none, and only sees whatever's assigned here.</p>
+        <label class="tech-select-label" for="tech-assign-select">Technician</label>
+        <select id="tech-assign-select">
+          <option value="">Loading technicians…</option>
+        </select>
+        <div id="tech-assign-list" class="technician-list">
+          <p class="assistant-placeholder">Select a technician to see their assignments.</p>
+        </div>
+        <form id="tech-assign-form" class="settings-form">
+          <label>Transformer ID <input type="text" name="transformer_id" placeholder="e.g. T0208" required></label>
+          <button type="submit">Assign</button>
+          <span id="tech-assign-error" class="login-error" hidden></span>
+        </form>
+      </section>
+      {% endif %}
+
+      <!-- ================= Assign Investigators (investigator / administrator) ================= -->
+      {% if "meter_assignments" in allowed_panels %}
+      <section class="panel" data-panel="meter_assignments">
+        <h2>🔍&nbsp;Assign Investigators</h2>
+        <p class="assistant-sub">Assign a technician to investigate a meter flagged for suspected theft - a newly created technician starts with none, and only sees whatever's assigned here.</p>
+        <label class="tech-select-label" for="meter-assign-select">Technician</label>
+        <select id="meter-assign-select">
+          <option value="">Loading technicians…</option>
+        </select>
+        <div id="meter-assign-list" class="technician-list">
+          <p class="assistant-placeholder">Select a technician to see their assignments.</p>
+        </div>
+        <form id="meter-assign-form" class="settings-form">
+          <label>Meter ID <input type="text" name="meter_id" placeholder="e.g. M02947" required></label>
+          <button type="submit">Assign</button>
+          <span id="meter-assign-error" class="login-error" hidden></span>
+        </form>
       </section>
       {% endif %}
 
@@ -289,21 +396,6 @@
           </label>
           <button type="submit">Create user</button>
           <span id="new-user-error" class="login-error" hidden></span>
-        </form>
-
-        <h3 class="dash-section-title">Technician Assignments</h3>
-        <p class="assistant-sub">Assign specific transformers to a technician - a newly created technician starts with none, and only sees whatever's assigned here.</p>
-        <label class="tech-select-label" for="tech-assign-select">Technician</label>
-        <select id="tech-assign-select">
-          <option value="">Loading technicians…</option>
-        </select>
-        <div id="tech-assign-list" class="technician-list">
-          <p class="assistant-placeholder">Select a technician to see their assignments.</p>
-        </div>
-        <form id="tech-assign-form" class="settings-form">
-          <label>Transformer ID <input type="text" name="transformer_id" placeholder="e.g. T0208" required></label>
-          <button type="submit">Assign</button>
-          <span id="tech-assign-error" class="login-error" hidden></span>
         </form>
 
         <h3 class="dash-section-title">Datasets</h3>
@@ -398,18 +490,36 @@
         .catch(function () { container.textContent = "Could not load reports."; });
     })();
 
+    // ---- Technician: Transformers / Meters entity switch ----
+    (function () {
+      var entityBtns = document.querySelectorAll(".tech-entity-btn");
+      if (!entityBtns.length) return;
+      var entityPanels = document.querySelectorAll(".tech-entity-panel");
+      entityBtns.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          entityBtns.forEach(function (b) { b.classList.remove("active"); });
+          btn.classList.add("active");
+          var target = btn.dataset.techEntity;
+          entityPanels.forEach(function (p) { p.hidden = p.dataset.techEntity !== target; });
+        });
+      });
+    })();
+
     // ---- Technician: assigned transformers + inspection submission ----
     (function () {
       var listContainer = document.getElementById("technician-list");
       if (!listContainer) return;
 
-      var selectEl = document.getElementById("technician-select");
+      var entityRoot = document.querySelector('.tech-entity-panel[data-tech-entity="transformer"]');
       var recentContainer = document.getElementById("technician-recent-list");
-      var subtabBtns = document.querySelectorAll(".tech-subtab-btn");
-      var subpanels = document.querySelectorAll(".tech-subpanel");
+      var subtabBtns = entityRoot.querySelectorAll(".tech-subtab-btn");
+      var subpanels = entityRoot.querySelectorAll(".tech-subpanel");
 
       var STATUS_LABELS = { pending: "Pending", inspected: "Inspected", needs_followup: "Needs follow-up" };
-      var TIER_COLORS = { low: "#0ca30c", moderate: "#fab219", elevated: "#ec835a", critical: "#d03b3b" };
+      var TIER_COLORS = { low: "#0ca30c", moderate: "#fab219", elevated: "#ec835a", emergency: "#d03b3b" };
+      // Worst-first so the grid surfaces the transformers needing attention
+      // soonest at the top-left, regardless of assignment order.
+      var TIER_SEVERITY = { emergency: 4, elevated: 3, moderate: 2, low: 1 };
       var assignments = [];
       var recentLoaded = false;
 
@@ -437,30 +547,44 @@
       function loadAssignments() {
         fetch("/api/technician/assignments")
           .then(function (r) { return r.json(); })
-          .then(function (data) { assignments = data.transformers; renderSelect(); })
+          .then(function (data) { assignments = data.transformers; renderGrid(); })
           .catch(function () { listContainer.textContent = "Could not load your assignments."; });
       }
 
-      function renderSelect() {
+      // Grouped by feeder rather than one flat severity-sorted list - a
+      // technician plans their day by feeder/route, not by an id-order that
+      // jumps across the whole service area. Worst feeder first, worst
+      // transformer first within each feeder.
+      function renderGrid() {
+        listContainer.innerHTML = "";
         if (!assignments.length) {
-          selectEl.hidden = true;
           listContainer.innerHTML = '<p class="assistant-placeholder">No transformers assigned to you yet.</p>';
           return;
         }
-        selectEl.hidden = false;
-        selectEl.innerHTML = assignments.map(function (item) {
-          return '<option value="' + item.id + '">' + item.id + " - " + item.cnc + " (" + item.risk_tier.toUpperCase() + ")</option>";
-        }).join("");
-        renderCard(selectEl.value);
+        var byFeeder = {};
+        assignments.forEach(function (item) {
+          var key = item.feeder_id || "Unassigned";
+          (byFeeder[key] = byFeeder[key] || []).push(item);
+        });
+        var feederIds = Object.keys(byFeeder).sort(function (a, b) {
+          var maxA = Math.max.apply(null, byFeeder[a].map(function (i) { return TIER_SEVERITY[i.risk_tier] || 0; }));
+          var maxB = Math.max.apply(null, byFeeder[b].map(function (i) { return TIER_SEVERITY[i.risk_tier] || 0; }));
+          return maxB - maxA;
+        });
+        feederIds.forEach(function (feederId) {
+          var heading = document.createElement("div");
+          heading.className = "technician-grid-feeder-heading";
+          heading.textContent = "⚡ Feeder " + feederId + " (" + byFeeder[feederId].length + ")";
+          listContainer.appendChild(heading);
+
+          var sorted = byFeeder[feederId].slice().sort(function (a, b) {
+            return (TIER_SEVERITY[b.risk_tier] || 0) - (TIER_SEVERITY[a.risk_tier] || 0);
+          });
+          sorted.forEach(function (item) { listContainer.appendChild(buildCard(item)); });
+        });
       }
 
-      selectEl.addEventListener("change", function () { renderCard(selectEl.value); });
-
-      function renderCard(transformerId) {
-        var item = assignments.filter(function (a) { return a.id === transformerId; })[0];
-        listContainer.innerHTML = "";
-        if (!item) return;
-
+      function buildCard(item) {
         var card = document.createElement("div");
         card.className = "technician-card technician-card-block";
         var color = TIER_COLORS[item.risk_tier] || "#52514e";
@@ -511,7 +635,7 @@
             .catch(function () { statusEl.textContent = "Something went wrong."; });
         });
 
-        listContainer.appendChild(card);
+        return card;
       }
 
       function loadRecent() {
@@ -530,6 +654,143 @@
         recentContainer.innerHTML = items.map(function (item) {
           return '<div class="technician-card technician-card-block">' +
             '<div class="technician-card-head"><strong>' + item.transformer_id + "</strong> - " + (item.cnc || "unknown") +
+              ' <span class="assistant-tag" style="background:#52514e">' + STATUS_LABELS[item.status] + "</span></div>" +
+            '<div class="assistant-meta">' + agoLabel(item.created_at) + " (" + item.created_at.slice(0, 10) + ") · " + item.technician_name + "</div>" +
+            (item.notes ? '<div class="assistant-meta">' + item.notes + "</div>" : "") +
+          "</div>";
+        }).join("");
+      }
+
+      loadAssignments();
+    })();
+
+    // ---- Technician: assigned meters + theft investigation submission ----
+    (function () {
+      var listContainer = document.getElementById("meter-technician-list");
+      if (!listContainer) return;
+
+      var entityRoot = document.querySelector('.tech-entity-panel[data-tech-entity="meter"]');
+      var recentContainer = document.getElementById("meter-technician-recent-list");
+      var subtabBtns = entityRoot.querySelectorAll(".tech-subtab-btn");
+      var subpanels = entityRoot.querySelectorAll(".tech-subpanel");
+
+      var STATUS_LABELS = {
+        pending: "Pending", investigating: "Investigating",
+        confirmed_theft: "Confirmed theft", false_positive: "False positive",
+      };
+      var TIER_COLORS = { low: "#0ca30c", moderate: "#fab219", elevated: "#ec835a", emergency: "#d03b3b" };
+      var TIER_SEVERITY = { emergency: 4, elevated: 3, moderate: 2, low: 1 };
+      var assignments = [];
+      var recentLoaded = false;
+
+      subtabBtns.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          subtabBtns.forEach(function (b) { b.classList.remove("active"); });
+          btn.classList.add("active");
+          var target = btn.dataset.techSub;
+          subpanels.forEach(function (p) { p.hidden = p.dataset.techSub !== target; });
+          if (target === "recent" && !recentLoaded) loadRecent();
+        });
+      });
+
+      function agoLabel(isoDate) {
+        var days = Math.max(0, Math.round((Date.now() - new Date(isoDate).getTime()) / 86400000));
+        if (days === 0) return "today";
+        if (days === 1) return "1 day ago";
+        if (days < 60) return days + " days ago";
+        var months = Math.round(days / 30);
+        return months === 1 ? "1 month ago" : months + " months ago";
+      }
+
+      function loadAssignments() {
+        fetch("/api/technician/meter-assignments")
+          .then(function (r) { return r.json(); })
+          .then(function (data) { assignments = data.meters; renderGrid(); })
+          .catch(function () { listContainer.textContent = "Could not load your meter assignments."; });
+      }
+
+      function renderGrid() {
+        listContainer.innerHTML = "";
+        if (!assignments.length) {
+          listContainer.innerHTML = '<p class="assistant-placeholder">No meters assigned to you yet.</p>';
+          return;
+        }
+        var sorted = assignments.slice().sort(function (a, b) {
+          return (TIER_SEVERITY[b.priority_tier] || 0) - (TIER_SEVERITY[a.priority_tier] || 0);
+        });
+        sorted.forEach(function (item) { listContainer.appendChild(buildCard(item)); });
+      }
+
+      function buildCard(item) {
+        var card = document.createElement("div");
+        card.className = "technician-card technician-card-block";
+        var color = TIER_COLORS[item.priority_tier] || "#52514e";
+        var lastLine = item.last_investigation
+          ? "Last investigation: " + STATUS_LABELS[item.last_investigation.status] + " " + agoLabel(item.last_investigation.created_at) + " by " + item.last_investigation.technician_name
+          : "No investigation submitted yet.";
+        card.innerHTML =
+          '<div class="technician-card-head">' +
+            "<strong>" + item.id + "</strong>" +
+            ' <span class="assistant-tag" style="background:' + color + '">' + item.priority_tier.toUpperCase() + "</span>" +
+          "</div>" +
+          '<div class="assistant-meta">Anomaly score ' + item.anomaly_score.toFixed(0) +
+            (item.top_reasons ? " · " + item.top_reasons : "") + "</div>" +
+          '<div class="assistant-meta">' + lastLine + "</div>" +
+          '<button type="button" class="inspect-toggle">Update investigation</button>' +
+          '<form class="inspection-form" hidden enctype="multipart/form-data">' +
+            '<input type="hidden" name="meter_id" value="' + item.id + '">' +
+            "<label>Status" +
+              '<select name="status">' +
+                '<option value="investigating">Investigating</option>' +
+                '<option value="confirmed_theft">Confirmed theft</option>' +
+                '<option value="false_positive">False positive</option>' +
+                '<option value="pending">Pending</option>' +
+              "</select>" +
+            "</label>" +
+            '<label>Notes <textarea name="notes" rows="2"></textarea></label>' +
+            '<label>Photo (optional) <input type="file" name="photo" accept="image/*"></label>' +
+            '<button type="submit">Submit investigation</button>' +
+            '<span class="inspect-status"></span>' +
+          "</form>";
+
+        var toggleBtn = card.querySelector(".inspect-toggle");
+        var form = card.querySelector(".inspection-form");
+        toggleBtn.addEventListener("click", function () { form.hidden = !form.hidden; });
+
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          var statusEl = form.querySelector(".inspect-status");
+          statusEl.textContent = "Submitting…";
+          fetch("/api/technician/meter-investigation", { method: "POST", body: new FormData(form) })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              if (data.error) { statusEl.textContent = data.error; return; }
+              statusEl.textContent = "Saved.";
+              recentLoaded = false;
+              setTimeout(loadAssignments, 600);
+            })
+            .catch(function () { statusEl.textContent = "Something went wrong."; });
+        });
+
+        return card;
+      }
+
+      function loadRecent() {
+        recentContainer.innerHTML = '<p class="assistant-placeholder">Loading recent investigations…</p>';
+        fetch("/api/technician/recent-meter-investigations")
+          .then(function (r) { return r.json(); })
+          .then(function (data) { renderRecent(data.investigations); recentLoaded = true; })
+          .catch(function () { recentContainer.textContent = "Could not load recent investigations."; });
+      }
+
+      function renderRecent(items) {
+        if (!items.length) {
+          recentContainer.innerHTML = '<p class="assistant-placeholder">No investigations submitted in the last 3 months.</p>';
+          return;
+        }
+        recentContainer.innerHTML = items.map(function (item) {
+          return '<div class="technician-card technician-card-block">' +
+            '<div class="technician-card-head"><strong>' + item.meter_id + "</strong>" +
               ' <span class="assistant-tag" style="background:#52514e">' + STATUS_LABELS[item.status] + "</span></div>" +
             '<div class="assistant-meta">' + agoLabel(item.created_at) + " (" + item.created_at.slice(0, 10) + ") · " + item.technician_name + "</div>" +
             (item.notes ? '<div class="assistant-meta">' + item.notes + "</div>" : "") +
@@ -593,7 +854,7 @@
       load();
     })();
 
-    // ---- Admin: technician transformer assignments ----
+    // ---- Assign Technicians (engineer / administrator): technician transformer assignments ----
     (function () {
       var select = document.getElementById("tech-assign-select");
       if (!select) return;
@@ -601,7 +862,7 @@
       var form = document.getElementById("tech-assign-form");
       var errorEl = document.getElementById("tech-assign-error");
 
-      var TIER_COLORS = { low: "#0ca30c", moderate: "#fab219", elevated: "#ec835a", critical: "#d03b3b" };
+      var TIER_COLORS = { low: "#0ca30c", moderate: "#fab219", elevated: "#ec835a", emergency: "#d03b3b" };
 
       function loadTechnicians() {
         fetch("/api/admin/technicians")
@@ -678,6 +939,91 @@
       loadTechnicians();
     })();
 
+    // ---- Assign Investigators (investigator / administrator): technician meter assignments ----
+    (function () {
+      var select = document.getElementById("meter-assign-select");
+      if (!select) return;
+      var listEl = document.getElementById("meter-assign-list");
+      var form = document.getElementById("meter-assign-form");
+      var errorEl = document.getElementById("meter-assign-error");
+
+      var TIER_COLORS = { low: "#0ca30c", moderate: "#fab219", elevated: "#ec835a", emergency: "#d03b3b" };
+
+      function loadTechnicians() {
+        fetch("/api/meter-technicians")
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (!data.technicians.length) {
+              select.innerHTML = '<option value="">No technician accounts yet</option>';
+              return;
+            }
+            select.innerHTML = data.technicians.map(function (t) {
+              return '<option value="' + t.id + '">' + t.full_name + " (" + t.username + ")</option>";
+            }).join("");
+            loadAssignments();
+          })
+          .catch(function () { select.innerHTML = '<option value="">Could not load technicians</option>'; });
+      }
+
+      function loadAssignments() {
+        if (!select.value) { listEl.innerHTML = ""; return; }
+        listEl.innerHTML = '<p class="assistant-placeholder">Loading assignments…</p>';
+        fetch("/api/meter-technicians/" + select.value + "/assignments")
+          .then(function (r) { return r.json(); })
+          .then(function (data) { renderAssignments(data.assignments); })
+          .catch(function () { listEl.textContent = "Could not load assignments."; });
+      }
+
+      function renderAssignments(items) {
+        if (!items.length) {
+          listEl.innerHTML = '<p class="assistant-placeholder">No meters assigned yet.</p>';
+          return;
+        }
+        listEl.innerHTML = "";
+        items.forEach(function (item) {
+          var row = document.createElement("div");
+          row.className = "technician-card";
+          var color = TIER_COLORS[item.priority_tier] || "#52514e";
+          row.innerHTML =
+            "<div><strong>" + item.id + "</strong>" +
+            ' <span class="assistant-tag" style="background:' + color + '">' + item.priority_tier.toUpperCase() + "</span></div>" +
+            '<button type="button" class="inspect-toggle">Unassign</button>';
+          row.querySelector("button").addEventListener("click", function () {
+            fetch("/api/meter-technicians/" + select.value + "/assignments/" + item.id, { method: "DELETE" })
+              .then(loadAssignments);
+          });
+          listEl.appendChild(row);
+        });
+      }
+
+      select.addEventListener("change", loadAssignments);
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        errorEl.hidden = true;
+        if (!select.value) { errorEl.textContent = "Pick a technician first."; errorEl.hidden = false; return; }
+        var meterId = form.meter_id.value.trim();
+        fetch("/api/meter-technicians/" + select.value + "/assignments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ meter_id: meterId }),
+        })
+          .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+          .then(function (result) {
+            if (!result.ok) {
+              errorEl.textContent = result.data.error || "Could not assign meter.";
+              errorEl.hidden = false;
+              return;
+            }
+            form.reset();
+            loadAssignments();
+          })
+          .catch(function () { errorEl.textContent = "Something went wrong."; errorEl.hidden = false; });
+      });
+
+      loadTechnicians();
+    })();
+
     // AI Assistant: rule-based chat (no LLM/network call beyond our own
     // /api/chat) plus a structured prediction card for whichever
     // transformer the conversation last mentioned - driven by
@@ -690,7 +1036,7 @@
       var card = document.getElementById("prediction-card");
       if (!form || !card) return;
 
-      var TIER_COLORS = { low: "#0ca30c", moderate: "#fab219", elevated: "#ec835a", critical: "#d03b3b" };
+      var TIER_COLORS = { low: "#0ca30c", moderate: "#fab219", elevated: "#ec835a", emergency: "#d03b3b" };
       var currentFocusId = null;
 
       // Narrowly linkifies only a self-generated /reports/<name>.pdf path
@@ -722,7 +1068,7 @@
       }
 
       function greet() {
-        addMessage("Ask me anything about the fleet - “predict T0208”, “why is T0208 high risk?”, “compare T0208 and T2960”, or “what's dissolved gas analysis?”", "bot");
+        addMessage("Hi, I'm Sidney. Ask me anything about the fleet - “predict T0208”, “why is T0208 high risk?”, “compare T0208 and T2960”, or “what's dissolved gas analysis?”", "bot");
       }
 
       function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }

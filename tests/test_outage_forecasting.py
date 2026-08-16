@@ -10,17 +10,17 @@ def test_load_data_has_required_columns():
     df = of.load_data()
     for col in of.FEATURES + [of.TARGET]:
         assert col in df.columns, f"loaded feeder data is missing column {col!r} used by outage_forecasting.py"
-    assert (df["critical_transformer_count"] >= 0).all()
+    assert (df["emergency_transformer_count"] >= 0).all()
 
 
 def test_generator_schema_matches_model_features():
     # Guards against schema drift: generate_data.py's feeder output must
     # keep providing every column outage_forecasting.py expects (aside from
-    # critical_transformer_count, which is joined in from
+    # emergency_transformer_count, which is joined in from
     # transformer_risk_scores.csv, not generated directly).
     transformer_df = gd.generate_transformer_data(n=100, n_feeders=25, seed=1)
     feeder_df = gd.generate_feeder_data(transformer_df, n=25, seed=1)
-    expected = set(of.FEATURES) - {"critical_transformer_count"}
+    expected = set(of.FEATURES) - {"emergency_transformer_count"}
     for col in expected | {of.TARGET}:
         assert col in feeder_df.columns
 

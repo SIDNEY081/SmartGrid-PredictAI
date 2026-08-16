@@ -1,233 +1,233 @@
 transformer_id,feeder_id,risk_score,risk_tier,risk_tier_order,status,alert_flag,health_score,confidence_pct,remaining_useful_life_years,next_maintenance_date,top_reasons,predicted_failure_mode
-T2960,F239,99.2,critical,4,Critical,1,0.8,98.4,0.2,2026-06-20,"high oil_quality_index, high temperature_rise_c, high load_factor",Oil degradation/contamination
-T1080,F419,98.2,critical,4,Critical,1,1.8,96.4,0.3,2026-06-26,"high temperature_rise_c, high load_factor, high age_years",Overheating
-T1532,F005,97.5,critical,4,Critical,1,2.5,95.0,0.6,2026-03-23,"high maintenance_score, high oil_quality_index, high temperature_rise_c",Deferred maintenance
-T1335,F267,97.5,critical,4,Critical,1,2.5,95.0,0.3,2025-06-21,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
-T0653,F102,97.3,critical,4,Critical,1,2.7,94.6,0.5,2026-04-11,"high maintenance_score, high age_years, high load_factor",Deferred maintenance
-T2616,F335,97.1,critical,4,Critical,1,2.9,94.2,0.6,2025-08-29,"high oil_quality_index, high temperature_rise_c, high maintenance_score",Oil degradation/contamination
-T1193,F086,97.1,critical,4,Critical,1,2.9,94.2,0.7,2026-07-06,"high load_factor, high temperature_rise_c, high maintenance_score",Overloading
-T1401,F428,97.0,critical,4,Critical,1,3.0,94.0,0.4,2026-01-24,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T0720,F300,96.9,critical,4,Critical,1,3.1,93.8,0.2,2026-01-30,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
-T2770,F480,96.8,critical,4,Critical,1,3.2,93.6,0.4,2026-08-04,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
-T2180,F229,96.7,critical,4,Critical,1,3.3,93.4,0.6,2026-01-13,"high maintenance_score, high temperature_rise_c, high oil_quality_index",Deferred maintenance
-T0597,F290,96.5,critical,4,Critical,1,3.5,93.0,0.4,2026-04-20,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
-T2524,F201,96.5,critical,4,Critical,1,3.5,93.0,0.6,2026-03-06,"high temperature_rise_c, high maintenance_score, high load_factor",Overheating
-T2839,F108,96.5,critical,4,Critical,1,3.5,93.0,0.7,2026-03-26,"high maintenance_score, high temperature_rise_c, high oil_quality_index",Deferred maintenance
-T2846,F229,96.2,critical,4,Critical,1,3.8,92.4,0.3,2026-02-18,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T2309,F154,96.2,critical,4,Critical,1,3.8,92.4,0.2,2026-06-06,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T2389,F478,96.2,critical,4,Critical,1,3.8,92.4,0.2,2025-11-11,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T2998,F174,96.1,critical,4,Critical,1,3.9,92.2,0.6,2026-01-18,"high age_years, high load_factor, high temperature_rise_c",End-of-life wear
-T1513,F372,95.9,critical,4,Critical,1,4.1,91.8,0.9,2026-02-22,"high temperature_rise_c, high load_factor, high age_years",Overheating
-T0914,F491,95.9,critical,4,Critical,1,4.1,91.8,0.9,2026-02-02,"high temperature_rise_c, high maintenance_score, high load_factor",Overheating
-T1934,F477,95.7,critical,4,Critical,1,4.3,91.4,0.9,2026-05-17,"high maintenance_score, high temperature_rise_c, high load_factor",Deferred maintenance
-T3000,F332,95.5,critical,4,Critical,1,4.5,91.0,0.9,2026-01-28,"high load_factor, high temperature_rise_c, high age_years",Overloading
-T2646,F003,95.4,critical,4,Critical,1,4.6,90.8,0.3,2026-01-26,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
-T1840,F277,95.3,critical,4,Critical,1,4.7,90.6,0.4,2026-05-22,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T2421,F130,95.3,critical,4,Critical,1,4.7,90.6,0.3,2026-04-16,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T2630,F020,95.3,critical,4,Critical,1,4.7,90.6,0.3,2026-04-10,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T0271,F148,95.2,critical,4,Critical,1,4.8,90.4,0.3,2026-06-03,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T2928,F161,95.0,critical,4,Critical,1,5.0,90.0,0.2,2025-09-22,"high temperature_rise_c, high maintenance_score, high age_years",Overheating
-T1565,F279,94.9,critical,4,Critical,1,5.1,89.8,0.3,2026-06-01,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
-T0893,F262,94.8,critical,4,Critical,1,5.2,89.6,0.5,2026-07-11,"high age_years, high maintenance_score, high oil_quality_index",End-of-life wear
-T1288,F118,94.6,critical,4,Critical,1,5.4,89.2,1.3,2025-06-23,"high temperature_rise_c, high maintenance_score, high load_factor",Overheating
-T0812,F440,94.5,critical,4,Critical,1,5.5,89.0,1.0,2025-11-04,"high maintenance_score, high temperature_rise_c, high age_years",Deferred maintenance
-T0330,F278,94.5,critical,4,Critical,1,5.5,89.0,1.5,2026-05-07,"high oil_quality_index, high maintenance_score, high load_factor",Oil degradation/contamination
-T0864,F387,94.4,critical,4,Critical,1,5.6,88.8,1.5,2026-02-06,"high temperature_rise_c, high load_factor, high maintenance_score",Overheating
-T0825,F312,94.3,critical,4,Critical,1,5.7,88.6,1.5,2025-03-07,"high maintenance_score, high oil_quality_index, high load_factor",Deferred maintenance
-T0765,F181,94.2,critical,4,Critical,1,5.8,88.4,1.0,2026-03-22,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
-T1225,F209,94.2,critical,4,Critical,1,5.8,88.4,1.0,2026-05-04,"high maintenance_score, high temperature_rise_c, high load_factor",Deferred maintenance
-T2832,F398,94.1,critical,4,Critical,1,5.9,88.2,1.2,2026-06-05,"high temperature_rise_c, high maintenance_score, high age_years",Overheating
-T0233,F010,94.0,critical,4,Critical,1,6.0,88.0,0.6,2026-04-05,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
-T2415,F187,93.9,critical,4,Critical,1,6.1,87.8,0.6,2026-04-03,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T1520,F231,93.7,critical,4,Critical,1,6.3,87.4,1.9,2025-10-20,"high maintenance_score, high oil_quality_index, high load_factor",Deferred maintenance
-T1489,F056,93.6,critical,4,Critical,1,6.4,87.2,0.3,2026-01-15,"high maintenance_score, high temperature_rise_c, high age_years",Deferred maintenance
-T0140,F219,93.6,critical,4,Critical,1,6.4,87.2,0.8,2025-10-25,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T0952,F153,93.6,critical,4,Critical,1,6.4,87.2,0.3,2026-02-23,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T1309,F208,93.6,critical,4,Critical,1,6.4,87.2,1.5,2026-02-09,"high maintenance_score, high oil_quality_index, high temperature_rise_c",Deferred maintenance
-T2693,F456,93.5,critical,4,Critical,1,6.5,87.0,0.7,2026-03-15,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T0168,F084,93.5,critical,4,Critical,1,6.5,87.0,2.0,2026-04-09,"high oil_quality_index, high maintenance_score, high load_factor",Oil degradation/contamination
-T0118,F070,93.5,critical,4,Critical,1,6.5,87.0,0.3,2025-07-15,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T1232,F367,93.3,critical,4,Critical,1,6.7,86.6,1.0,2026-05-07,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T1692,F445,93.3,critical,4,Critical,1,6.7,86.6,0.3,2026-04-13,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T1390,F455,92.8,critical,4,Critical,1,7.2,85.6,0.8,2026-05-12,"high temperature_rise_c, high maintenance_score, high age_years",Overheating
-T0500,F213,92.7,critical,4,Critical,1,7.3,85.4,0.5,2026-03-26,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T2358,F110,92.7,critical,4,Critical,1,7.3,85.4,0.6,2026-02-22,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T0117,F019,92.7,critical,4,Critical,1,7.3,85.4,1.8,2026-01-03,"high maintenance_score, high oil_quality_index, high load_factor",Deferred maintenance
-T1059,F213,92.7,critical,4,Critical,1,7.3,85.4,0.4,2026-04-02,"high temperature_rise_c, high age_years, high maintenance_score",Overheating
-T0416,F339,92.7,critical,4,Critical,1,7.3,85.4,1.5,2025-08-12,"high maintenance_score, high temperature_rise_c, high oil_quality_index",Deferred maintenance
-T2126,F128,92.6,critical,4,Critical,1,7.4,85.2,1.3,2026-01-09,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T0841,F145,92.5,critical,4,Critical,1,7.5,85.0,1.8,2025-12-21,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
-T0252,F247,92.5,critical,4,Critical,1,7.5,85.0,0.6,2026-07-08,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T2266,F048,92.2,critical,4,Critical,1,7.8,84.4,1.6,2026-01-30,"high load_factor, high temperature_rise_c, high age_years",Overloading
-T2962,F211,92.1,critical,4,Critical,1,7.9,84.2,0.8,2026-06-12,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
-T2569,F190,91.7,critical,4,Critical,1,8.3,83.4,0.7,2026-02-19,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T2645,F227,91.7,critical,4,Critical,1,8.3,83.4,0.4,2025-12-10,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T1949,F001,91.6,critical,4,Critical,1,8.4,83.2,0.5,2026-05-29,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T2448,F324,91.6,critical,4,Critical,1,8.4,83.2,0.8,2026-06-01,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T1950,F161,91.6,critical,4,Critical,1,8.4,83.2,0.6,2026-06-29,"high age_years, high load_factor, high temperature_rise_c",End-of-life wear
-T0871,F229,91.5,critical,4,Critical,1,8.5,83.0,2.4,2026-05-18,"high oil_quality_index, high maintenance_score, high load_factor",Oil degradation/contamination
-T2777,F262,91.5,critical,4,Critical,1,8.5,83.0,2.0,2026-02-24,"high temperature_rise_c, high load_factor, high age_years",Overheating
-T0342,F146,91.4,critical,4,Critical,1,8.6,82.8,2.3,2026-03-29,"high temperature_rise_c, high maintenance_score, high load_factor",Overheating
-T1853,F228,91.4,critical,4,Critical,1,8.6,82.8,0.4,2026-06-29,"high temperature_rise_c, high age_years, high oil_quality_index",Overheating
-T1801,F029,91.4,critical,4,Critical,1,8.6,82.8,0.4,2026-04-23,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T0631,F369,91.3,critical,4,Critical,1,8.7,82.6,1.1,2026-02-02,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T2311,F141,91.2,critical,4,Critical,1,8.8,82.4,2.8,2026-01-18,"high oil_quality_index, high maintenance_score, high load_factor",Oil degradation/contamination
-T2219,F144,91.2,critical,4,Critical,1,8.8,82.4,0.7,2026-03-15,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T0858,F029,91.2,critical,4,Critical,1,8.8,82.4,1.6,2026-01-24,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T2375,F350,91.2,critical,4,Critical,1,8.8,82.4,1.0,2026-03-11,"high temperature_rise_c, high maintenance_score, high age_years",Overheating
-T2642,F249,91.1,critical,4,Critical,1,8.9,82.2,1.8,2025-08-17,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
-T1451,F147,91.1,critical,4,Critical,1,8.9,82.2,0.4,2025-11-07,"high maintenance_score, high age_years, high load_factor",Deferred maintenance
-T2143,F482,91.1,critical,4,Critical,1,8.9,82.2,1.5,2025-12-23,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T0328,F019,91.1,critical,4,Critical,1,8.9,82.2,0.4,2026-07-01,"high temperature_rise_c, high age_years, high load_factor",Overheating
-T1028,F141,91.1,critical,4,Critical,1,8.9,82.2,1.3,2025-12-04,"high age_years, high maintenance_score, high oil_quality_index",End-of-life wear
-T1333,F213,91.0,critical,4,Critical,1,9.0,82.0,0.4,2026-06-04,"high temperature_rise_c, high age_years, high maintenance_score",Overheating
-T0417,F485,90.9,critical,4,Critical,1,9.1,81.8,1.2,2026-04-16,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T0320,F385,90.9,critical,4,Critical,1,9.1,81.8,2.3,2026-05-08,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
-T0265,F495,90.9,critical,4,Critical,1,9.1,81.8,0.5,2026-03-05,"high temperature_rise_c, high age_years, high oil_quality_index",Overheating
-T1426,F408,90.9,critical,4,Critical,1,9.1,81.8,0.5,2025-11-24,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
-T2745,F100,90.7,critical,4,Critical,1,9.3,81.4,1.1,2025-12-17,"high maintenance_score, high age_years, high oil_quality_index",Deferred maintenance
-T0744,F136,90.7,critical,4,Critical,1,9.3,81.4,1.2,2025-11-26,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T2813,F099,90.6,critical,4,Critical,1,9.4,81.2,1.7,2025-11-12,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
-T1170,F459,90.4,critical,4,Critical,1,9.6,80.8,1.0,2026-07-01,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T1643,F224,90.4,critical,4,Critical,1,9.6,80.8,0.7,2026-05-18,"high age_years, high load_factor, high temperature_rise_c",End-of-life wear
-T0609,F484,90.3,critical,4,Critical,1,9.7,80.6,1.8,2025-11-26,"high maintenance_score, high temperature_rise_c, high age_years",Deferred maintenance
-T1742,F372,90.3,critical,4,Critical,1,9.7,80.6,1.6,2026-07-08,"high temperature_rise_c, high maintenance_score, high age_years",Overheating
-T1371,F441,90.3,critical,4,Critical,1,9.7,80.6,0.5,2026-05-16,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
-T2472,F050,90.3,critical,4,Critical,1,9.7,80.6,1.3,2026-03-02,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T2575,F387,90.2,critical,4,Critical,1,9.8,80.4,2.4,2026-05-09,"high maintenance_score, high temperature_rise_c, high load_factor",Deferred maintenance
-T2746,F203,90.0,critical,4,Critical,1,10.0,80.0,1.2,2024-08-07,"high maintenance_score, high age_years, low load_factor",Deferred maintenance
-T1361,F042,89.8,critical,4,Critical,1,10.2,79.6,0.5,2026-02-16,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T2137,F273,89.8,critical,4,Critical,1,10.2,79.6,2.2,2026-06-15,"high temperature_rise_c, high load_factor, high age_years",Overheating
-T1652,F010,89.7,critical,4,Critical,1,10.3,79.4,0.6,2026-01-28,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
-T0995,F265,89.7,critical,4,Critical,1,10.3,79.4,1.4,2026-06-20,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T1606,F446,89.5,critical,4,Critical,1,10.5,79.0,1.0,2026-06-30,"high maintenance_score, high age_years, high oil_quality_index",Deferred maintenance
-T0021,F251,89.2,critical,4,Critical,1,10.8,78.4,1.5,2026-05-04,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
-T2043,F374,89.2,critical,4,Critical,1,10.8,78.4,2.5,2025-12-25,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
-T2514,F378,89.0,critical,4,Critical,1,11.0,78.0,1.7,2026-05-15,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T1224,F328,89.0,critical,4,Critical,1,11.0,78.0,2.4,2025-11-20,"high temperature_rise_c, high maintenance_score, high oil_quality_index",Overheating
-T2456,F239,89.0,critical,4,Critical,1,11.0,78.0,0.6,2026-05-23,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T1540,F311,88.8,critical,4,Critical,1,11.2,77.6,0.8,2026-07-18,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T1685,F180,88.7,critical,4,Critical,1,11.3,77.4,1.8,2026-04-27,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
-T0636,F343,88.7,critical,4,Critical,1,11.3,77.4,2.4,2026-05-18,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
-T2088,F332,88.6,critical,4,Critical,1,11.4,77.2,2.5,2025-11-15,"high oil_quality_index, high maintenance_score, high load_factor",Oil degradation/contamination
-T0608,F258,88.6,critical,4,Critical,1,11.4,77.2,3.6,2026-06-15,"high temperature_rise_c, high maintenance_score, high load_factor",Overheating
-T2406,F415,88.5,critical,4,Critical,1,11.5,77.0,2.6,2026-07-07,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
-T1405,F089,88.1,critical,4,Critical,1,11.9,76.2,3.5,2026-06-25,"high maintenance_score, high load_factor, high oil_quality_index",Deferred maintenance
-T0745,F398,87.8,critical,4,Critical,1,12.2,75.6,0.6,2026-03-12,"high temperature_rise_c, high age_years, high load_factor",Overheating
-T2077,F233,87.7,critical,4,Critical,1,12.3,75.4,0.6,2026-03-06,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T0586,F463,87.7,critical,4,Critical,1,12.3,75.4,0.6,2026-05-28,"high temperature_rise_c, high age_years, low maintenance_score",Overheating
-T2435,F226,87.5,critical,4,Critical,1,12.5,75.0,2.9,2026-06-19,"high maintenance_score, high load_factor, high oil_quality_index",Deferred maintenance
-T2481,F326,87.5,critical,4,Critical,1,12.5,75.0,3.2,2026-06-05,"high load_factor, high maintenance_score, high temperature_rise_c",Overloading
-T0305,F272,87.4,critical,4,Critical,1,12.6,74.8,4.9,2026-05-16,"high oil_quality_index, high maintenance_score, low age_years",Oil degradation/contamination
-T0472,F403,87.3,critical,4,Critical,1,12.7,74.6,1.4,2026-03-11,"high temperature_rise_c, high age_years, high maintenance_score",Overheating
-T1700,F481,87.2,critical,4,Critical,1,12.8,74.4,0.6,2026-05-11,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
-T0702,F309,87.1,critical,4,Critical,1,12.9,74.2,2.6,2026-01-09,"high temperature_rise_c, high maintenance_score, high age_years",Overheating
-T1882,F133,87.0,critical,4,Critical,1,13.0,74.0,0.6,2026-07-21,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
-T2270,F489,86.6,critical,4,Critical,1,13.4,73.2,2.9,2026-07-27,"high temperature_rise_c, high maintenance_score, high age_years",Overheating
-T2356,F184,86.5,critical,4,Critical,1,13.5,73.0,2.5,2026-05-15,"high maintenance_score, high age_years, high load_factor",Deferred maintenance
-T1466,F056,86.4,critical,4,Critical,1,13.6,72.8,1.7,2026-06-02,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
-T1948,F459,86.3,critical,4,Critical,1,13.7,72.6,0.7,2025-10-31,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T2319,F426,86.2,critical,4,Critical,1,13.8,72.4,2.0,2026-06-20,"high temperature_rise_c, high age_years, high load_factor",Overheating
-T0346,F128,86.2,critical,4,Critical,1,13.8,72.4,2.0,2026-05-24,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T0842,F329,86.1,critical,4,Critical,1,13.9,72.2,3.1,2026-04-11,"high maintenance_score, high temperature_rise_c, high load_factor",Deferred maintenance
-T0939,F231,86.0,critical,4,Critical,1,14.0,72.0,2.1,2026-01-22,"high maintenance_score, high age_years, high oil_quality_index",Deferred maintenance
-T2133,F260,85.9,critical,4,Critical,1,14.1,71.8,1.9,2026-07-22,"high age_years, high maintenance_score, high load_factor",End-of-life wear
-T1118,F294,85.9,critical,4,Critical,1,14.1,71.8,4.0,2026-03-07,"high maintenance_score, high oil_quality_index, low load_factor",Deferred maintenance
-T0579,F447,85.9,critical,4,Critical,1,14.1,71.8,2.2,2026-06-26,"high maintenance_score, high age_years, high oil_quality_index",Deferred maintenance
-T0180,F251,85.9,critical,4,Critical,1,14.1,71.8,3.2,2025-10-30,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
-T2352,F376,85.8,critical,4,Critical,1,14.2,71.6,1.2,2026-07-08,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
-T2494,F306,85.8,critical,4,Critical,1,14.2,71.6,2.1,2026-02-23,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T0511,F498,85.8,critical,4,Critical,1,14.2,71.6,3.4,2025-10-01,"high oil_quality_index, high maintenance_score, high load_factor",Oil degradation/contamination
-T2678,F440,85.7,critical,4,Critical,1,14.3,71.4,2.8,2026-05-06,"high maintenance_score, high temperature_rise_c, high age_years",Deferred maintenance
-T0541,F355,85.7,critical,4,Critical,1,14.3,71.4,1.7,2026-07-17,"high age_years, high load_factor, high temperature_rise_c",End-of-life wear
-T0830,F015,85.5,critical,4,Critical,1,14.5,71.0,0.7,2026-06-06,"high temperature_rise_c, high age_years, high oil_quality_index",Overheating
-T0429,F013,85.5,critical,4,Critical,1,14.5,71.0,0.7,2025-06-13,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T2498,F445,85.5,critical,4,Critical,1,14.5,71.0,0.7,2025-11-24,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T2542,F486,85.5,critical,4,Critical,1,14.5,71.0,4.7,2025-11-20,"high oil_quality_index, high maintenance_score, high load_factor",Oil degradation/contamination
-T2458,F468,85.3,critical,4,Critical,1,14.7,70.6,3.7,2026-04-27,"high load_factor, high maintenance_score, high age_years",Overloading
-T2115,F371,85.2,critical,4,Critical,1,14.8,70.4,3.9,2026-03-01,"high temperature_rise_c, high maintenance_score, high load_factor",Overheating
-T0880,F316,85.1,critical,4,Critical,1,14.9,70.2,3.2,2026-07-04,"high load_factor, high temperature_rise_c, high age_years",Overloading
-T0696,F127,85.1,critical,4,Critical,1,14.9,70.2,3.5,2025-07-26,"high maintenance_score, high temperature_rise_c, high oil_quality_index",Deferred maintenance
-T0758,F192,84.9,critical,4,Critical,1,15.1,69.8,0.8,2026-05-23,"high temperature_rise_c, high age_years, high oil_quality_index",Overheating
-T0314,F141,84.8,critical,4,Critical,1,15.2,69.6,3.0,2026-06-09,"high temperature_rise_c, high load_factor, low maintenance_score",Overheating
-T1211,F312,84.8,critical,4,Critical,1,15.2,69.6,0.8,2026-02-01,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T1269,F477,84.6,critical,4,Critical,1,15.4,69.2,4.2,2025-10-31,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
-T0692,F398,84.6,critical,4,Critical,1,15.4,69.2,3.5,2026-06-23,"high oil_quality_index, high maintenance_score, high temperature_rise_c",Oil degradation/contamination
-T0232,F429,84.6,critical,4,Critical,1,15.4,69.2,2.2,2026-04-01,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T2231,F317,84.6,critical,4,Critical,1,15.4,69.2,3.6,2026-04-10,"high maintenance_score, high temperature_rise_c, high oil_quality_index",Deferred maintenance
-T0803,F258,84.5,critical,4,Critical,1,15.5,69.0,3.3,2026-02-04,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
-T0781,F439,84.2,critical,4,Critical,1,15.8,68.4,4.7,2026-04-16,"high maintenance_score, high oil_quality_index, high load_factor",Deferred maintenance
-T1625,F277,83.9,critical,4,Critical,1,16.1,67.8,4.2,2026-06-04,"high temperature_rise_c, high maintenance_score, high oil_quality_index",Overheating
-T2291,F198,83.5,critical,4,Critical,1,16.5,67.0,3.8,2026-01-11,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
-T0080,F335,83.5,critical,4,Critical,1,16.5,67.0,3.5,2026-01-21,"high maintenance_score, high age_years, high oil_quality_index",Deferred maintenance
-T2420,F210,83.2,critical,4,Critical,1,16.8,66.4,4.7,2025-10-25,"high maintenance_score, high temperature_rise_c, high load_factor",Deferred maintenance
-T1106,F091,83.2,critical,4,Critical,1,16.8,66.4,2.3,2026-07-24,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T0646,F165,83.1,critical,4,Critical,1,16.9,66.2,3.6,2025-08-15,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
-T1917,F142,83.1,critical,4,Critical,1,16.9,66.2,3.1,2026-04-11,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T0525,F160,83.0,critical,4,Critical,1,17.0,66.0,3.0,2026-05-27,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T1813,F337,83.0,critical,4,Critical,1,17.0,66.0,3.0,2026-03-15,"high maintenance_score, high age_years, high oil_quality_index",Deferred maintenance
-T0771,F326,82.8,critical,4,Critical,1,17.2,65.6,2.0,2026-02-10,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
-T2519,F072,82.8,critical,4,Critical,1,17.2,65.6,5.7,2026-03-16,"high maintenance_score, high oil_quality_index, low age_years",Deferred maintenance
-T1164,F266,82.6,critical,4,Critical,1,17.4,65.2,4.8,2025-09-04,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
-T2682,F051,82.5,critical,4,Critical,1,17.5,65.0,1.2,2026-04-18,"high age_years, high temperature_rise_c, low load_factor",End-of-life wear
-T1560,F428,82.5,critical,4,Critical,1,17.5,65.0,1.9,2026-04-27,"high temperature_rise_c, high age_years, high load_factor",Overheating
-T2592,F190,82.4,critical,4,Critical,1,17.6,64.8,0.9,2025-12-24,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
-T0964,F109,82.3,critical,4,Critical,1,17.7,64.6,3.9,2025-06-26,"high maintenance_score, high temperature_rise_c, high oil_quality_index",Deferred maintenance
-T2222,F077,82.2,critical,4,Critical,1,17.8,64.4,1.7,2026-07-04,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T2549,F236,82.2,critical,4,Critical,1,17.8,64.4,2.1,2025-09-15,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T0104,F004,82.1,critical,4,Critical,1,17.9,64.2,5.3,2026-06-23,"high temperature_rise_c, high maintenance_score, high oil_quality_index",Overheating
-T2737,F288,82.1,critical,4,Critical,1,17.9,64.2,2.4,2026-07-23,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
-T1407,F174,82.0,critical,4,Critical,1,18.0,64.0,6.2,2025-02-28,"high maintenance_score, high oil_quality_index, low age_years",Deferred maintenance
-T2691,F365,81.9,critical,4,Critical,1,18.1,63.8,0.9,2026-06-10,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T1132,F336,81.6,critical,4,Critical,1,18.4,63.2,6.2,2026-05-16,"high oil_quality_index, high maintenance_score, low age_years",Oil degradation/contamination
-T2021,F152,81.5,critical,4,Critical,1,18.5,63.0,5.1,2025-11-13,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
-T2617,F497,81.2,critical,4,Critical,1,18.8,62.4,3.0,2026-05-14,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
-T1738,F050,81.1,critical,4,Critical,1,18.9,62.2,2.5,2026-04-11,"high temperature_rise_c, high age_years, high maintenance_score",Overheating
-T0689,F223,81.0,critical,4,Critical,1,19.0,62.0,2.0,2026-01-18,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T0903,F110,81.0,critical,4,Critical,1,19.0,62.0,2.7,2026-03-04,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T2487,F123,80.6,critical,4,Critical,1,19.4,61.2,1.8,2025-07-23,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
-T0766,F391,80.4,critical,4,Critical,1,19.6,60.8,4.2,2026-06-16,"high temperature_rise_c, high age_years, high load_factor",Overheating
-T0918,F393,80.2,critical,4,Critical,1,19.8,60.4,4.0,2026-05-10,"high temperature_rise_c, high load_factor, high age_years",Overheating
-T2413,F466,80.1,critical,4,Critical,1,19.9,60.2,7.2,2025-12-15,"high oil_quality_index, high maintenance_score, low age_years",Oil degradation/contamination
-T2730,F231,80.0,critical,4,Critical,1,20.0,60.0,2.5,2026-07-24,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
-T1363,F176,79.9,critical,4,Critical,1,20.1,59.8,4.0,2026-06-08,"high temperature_rise_c, high age_years, high maintenance_score",Overheating
-T1920,F265,79.8,critical,4,Critical,1,20.2,59.6,2.8,2025-11-09,"high maintenance_score, high age_years, high oil_quality_index",Deferred maintenance
-T0299,F143,79.7,critical,4,Critical,1,20.3,59.4,3.8,2026-04-28,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T0435,F217,79.7,critical,4,Critical,1,20.3,59.4,2.3,2026-05-08,"high temperature_rise_c, high age_years, high maintenance_score",Overheating
-T1818,F127,79.5,critical,4,Critical,1,20.5,59.0,4.1,2026-06-13,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T1822,F383,79.5,critical,4,Critical,1,20.5,59.0,1.9,2026-07-11,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T2879,F436,79.4,critical,4,Critical,1,20.6,58.8,3.3,2026-04-02,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T0675,F311,79.3,critical,4,Critical,1,20.7,58.6,1.0,2026-03-10,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
-T1378,F376,78.9,critical,4,Critical,1,21.1,57.8,5.7,2025-12-31,"high maintenance_score, high oil_quality_index, high temperature_rise_c",Deferred maintenance
-T1395,F108,78.9,critical,4,Critical,1,21.1,57.8,3.5,2026-03-17,"high maintenance_score, high age_years, high oil_quality_index",Deferred maintenance
-T0268,F174,78.8,critical,4,Critical,1,21.2,57.6,3.6,2025-12-11,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
-T0985,F294,78.5,critical,4,Critical,1,21.5,57.0,6.9,2026-04-02,"high maintenance_score, high load_factor, high oil_quality_index",Deferred maintenance
-T0154,F147,78.5,critical,4,Critical,1,21.5,57.0,1.1,2026-03-26,"high temperature_rise_c, high age_years, high oil_quality_index",Overheating
-T0425,F209,78.4,critical,4,Critical,1,21.6,56.8,5.9,2026-04-24,"high maintenance_score, high load_factor, high oil_quality_index",Deferred maintenance
-T0421,F464,78.3,critical,4,Critical,1,21.7,56.6,5.4,2026-01-24,"high maintenance_score, high oil_quality_index, high temperature_rise_c",Deferred maintenance
-T2581,F192,78.2,critical,4,Critical,1,21.8,56.4,4.7,2026-07-23,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
-T0989,F124,78.2,critical,4,Critical,1,21.8,56.4,2.6,2026-06-02,"high temperature_rise_c, high age_years, high load_factor",Overheating
-T0977,F048,78.1,critical,4,Critical,1,21.9,56.2,1.2,2026-03-05,"high age_years, high temperature_rise_c, low maintenance_score",End-of-life wear
-T0770,F189,78.1,critical,4,Critical,1,21.9,56.2,3.9,2026-05-15,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
-T1351,F031,78.0,critical,4,Critical,1,22.0,56.0,1.1,2026-07-03,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T2889,F075,78.0,critical,4,Critical,1,22.0,56.0,6.8,2026-01-31,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
-T0677,F291,77.8,critical,4,Critical,1,22.2,55.6,4.2,2025-12-22,"high maintenance_score, high temperature_rise_c, high age_years",Deferred maintenance
-T2298,F246,77.6,critical,4,Critical,1,22.4,55.2,5.1,2026-03-21,"high maintenance_score, high oil_quality_index, high temperature_rise_c",Deferred maintenance
-T0783,F062,77.6,critical,4,Critical,1,22.4,55.2,7.1,2026-04-25,"high maintenance_score, high oil_quality_index, low age_years",Deferred maintenance
-T2806,F485,77.5,critical,4,Critical,1,22.5,55.0,6.5,2026-06-02,"high maintenance_score, high temperature_rise_c, high oil_quality_index",Deferred maintenance
-T1155,F153,77.3,critical,4,Critical,1,22.7,54.6,1.6,2026-02-27,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T0455,F299,77.2,critical,4,Critical,1,22.8,54.4,3.8,2026-03-18,"high age_years, high oil_quality_index, high temperature_rise_c",End-of-life wear
-T0932,F350,76.7,critical,4,Critical,1,23.3,53.4,4.9,2025-09-18,"high maintenance_score, high oil_quality_index, high temperature_rise_c",Deferred maintenance
-T2736,F070,76.7,critical,4,Critical,1,23.3,53.4,1.2,2026-06-23,"high temperature_rise_c, high age_years, low maintenance_score",Overheating
-T1644,F298,76.7,critical,4,Critical,1,23.3,53.4,6.4,2026-06-20,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
-T0676,F363,76.7,critical,4,Critical,1,23.3,53.4,1.2,2026-04-14,"high temperature_rise_c, high age_years, high oil_quality_index",Overheating
-T2657,F030,76.6,critical,4,Critical,1,23.4,53.2,5.0,2026-02-19,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
-T1354,F458,76.0,critical,4,Critical,1,24.0,52.0,1.2,2026-04-22,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
-T2941,F358,75.9,critical,4,Critical,1,24.1,51.8,5.4,2026-03-13,"high maintenance_score, high oil_quality_index, high temperature_rise_c",Deferred maintenance
-T1149,F345,75.4,critical,4,Critical,1,24.6,50.8,4.3,2026-05-19,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
-T2208,F420,75.4,critical,4,Critical,1,24.6,50.8,4.1,2026-07-30,"high maintenance_score, high age_years, low load_factor",Deferred maintenance
-T2797,F436,75.3,critical,4,Critical,1,24.7,50.6,4.7,2026-04-05,"high maintenance_score, high age_years, high load_factor",Deferred maintenance
-T0408,F072,75.3,critical,4,Critical,1,24.7,50.6,3.9,2026-07-20,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
+T2960,F239,99.2,emergency,4,Emergency,1,0.8,98.4,0.2,2026-06-20,"high oil_quality_index, high temperature_rise_c, high load_factor",Oil degradation/contamination
+T1080,F419,98.2,emergency,4,Emergency,1,1.8,96.4,0.3,2026-06-26,"high temperature_rise_c, high load_factor, high age_years",Overheating
+T1532,F005,97.5,emergency,4,Emergency,1,2.5,95.0,0.6,2026-03-23,"high maintenance_score, high oil_quality_index, high temperature_rise_c",Deferred maintenance
+T1335,F267,97.5,emergency,4,Emergency,1,2.5,95.0,0.3,2025-06-21,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
+T0653,F102,97.3,emergency,4,Emergency,1,2.7,94.6,0.5,2026-04-11,"high maintenance_score, high age_years, high load_factor",Deferred maintenance
+T2616,F335,97.1,emergency,4,Emergency,1,2.9,94.2,0.6,2025-08-29,"high oil_quality_index, high temperature_rise_c, high maintenance_score",Oil degradation/contamination
+T1193,F086,97.1,emergency,4,Emergency,1,2.9,94.2,0.7,2026-07-06,"high load_factor, high temperature_rise_c, high maintenance_score",Overloading
+T1401,F428,97.0,emergency,4,Emergency,1,3.0,94.0,0.4,2026-01-24,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T0720,F300,96.9,emergency,4,Emergency,1,3.1,93.8,0.2,2026-01-30,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
+T2770,F480,96.8,emergency,4,Emergency,1,3.2,93.6,0.4,2026-08-04,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
+T2180,F229,96.7,emergency,4,Emergency,1,3.3,93.4,0.6,2026-01-13,"high maintenance_score, high temperature_rise_c, high oil_quality_index",Deferred maintenance
+T0597,F290,96.5,emergency,4,Emergency,1,3.5,93.0,0.4,2026-04-20,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
+T2524,F201,96.5,emergency,4,Emergency,1,3.5,93.0,0.6,2026-03-06,"high temperature_rise_c, high maintenance_score, high load_factor",Overheating
+T2839,F108,96.5,emergency,4,Emergency,1,3.5,93.0,0.7,2026-03-26,"high maintenance_score, high temperature_rise_c, high oil_quality_index",Deferred maintenance
+T2846,F229,96.2,emergency,4,Emergency,1,3.8,92.4,0.3,2026-02-18,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T2309,F154,96.2,emergency,4,Emergency,1,3.8,92.4,0.2,2026-06-06,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T2389,F478,96.2,emergency,4,Emergency,1,3.8,92.4,0.2,2025-11-11,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T2998,F174,96.1,emergency,4,Emergency,1,3.9,92.2,0.6,2026-01-18,"high age_years, high load_factor, high temperature_rise_c",End-of-life wear
+T1513,F372,95.9,emergency,4,Emergency,1,4.1,91.8,0.9,2026-02-22,"high temperature_rise_c, high load_factor, high age_years",Overheating
+T0914,F491,95.9,emergency,4,Emergency,1,4.1,91.8,0.9,2026-02-02,"high temperature_rise_c, high maintenance_score, high load_factor",Overheating
+T1934,F477,95.7,emergency,4,Emergency,1,4.3,91.4,0.9,2026-05-17,"high maintenance_score, high temperature_rise_c, high load_factor",Deferred maintenance
+T3000,F332,95.5,emergency,4,Emergency,1,4.5,91.0,0.9,2026-01-28,"high load_factor, high temperature_rise_c, high age_years",Overloading
+T2646,F003,95.4,emergency,4,Emergency,1,4.6,90.8,0.3,2026-01-26,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
+T1840,F277,95.3,emergency,4,Emergency,1,4.7,90.6,0.4,2026-05-22,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T2421,F130,95.3,emergency,4,Emergency,1,4.7,90.6,0.3,2026-04-16,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T2630,F020,95.3,emergency,4,Emergency,1,4.7,90.6,0.3,2026-04-10,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T0271,F148,95.2,emergency,4,Emergency,1,4.8,90.4,0.3,2026-06-03,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T2928,F161,95.0,emergency,4,Emergency,1,5.0,90.0,0.2,2025-09-22,"high temperature_rise_c, high maintenance_score, high age_years",Overheating
+T1565,F279,94.9,emergency,4,Emergency,1,5.1,89.8,0.3,2026-06-01,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
+T0893,F262,94.8,emergency,4,Emergency,1,5.2,89.6,0.5,2026-07-11,"high age_years, high maintenance_score, high oil_quality_index",End-of-life wear
+T1288,F118,94.6,emergency,4,Emergency,1,5.4,89.2,1.3,2025-06-23,"high temperature_rise_c, high maintenance_score, high load_factor",Overheating
+T0812,F440,94.5,emergency,4,Emergency,1,5.5,89.0,1.0,2025-11-04,"high maintenance_score, high temperature_rise_c, high age_years",Deferred maintenance
+T0330,F278,94.5,emergency,4,Emergency,1,5.5,89.0,1.5,2026-05-07,"high oil_quality_index, high maintenance_score, high load_factor",Oil degradation/contamination
+T0864,F387,94.4,emergency,4,Emergency,1,5.6,88.8,1.5,2026-02-06,"high temperature_rise_c, high load_factor, high maintenance_score",Overheating
+T0825,F312,94.3,emergency,4,Emergency,1,5.7,88.6,1.5,2025-03-07,"high maintenance_score, high oil_quality_index, high load_factor",Deferred maintenance
+T0765,F181,94.2,emergency,4,Emergency,1,5.8,88.4,1.0,2026-03-22,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
+T1225,F209,94.2,emergency,4,Emergency,1,5.8,88.4,1.0,2026-05-04,"high maintenance_score, high temperature_rise_c, high load_factor",Deferred maintenance
+T2832,F398,94.1,emergency,4,Emergency,1,5.9,88.2,1.2,2026-06-05,"high temperature_rise_c, high maintenance_score, high age_years",Overheating
+T0233,F010,94.0,emergency,4,Emergency,1,6.0,88.0,0.6,2026-04-05,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
+T2415,F187,93.9,emergency,4,Emergency,1,6.1,87.8,0.6,2026-04-03,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T1520,F231,93.7,emergency,4,Emergency,1,6.3,87.4,1.9,2025-10-20,"high maintenance_score, high oil_quality_index, high load_factor",Deferred maintenance
+T1489,F056,93.6,emergency,4,Emergency,1,6.4,87.2,0.3,2026-01-15,"high maintenance_score, high temperature_rise_c, high age_years",Deferred maintenance
+T0140,F219,93.6,emergency,4,Emergency,1,6.4,87.2,0.8,2025-10-25,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T0952,F153,93.6,emergency,4,Emergency,1,6.4,87.2,0.3,2026-02-23,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T1309,F208,93.6,emergency,4,Emergency,1,6.4,87.2,1.5,2026-02-09,"high maintenance_score, high oil_quality_index, high temperature_rise_c",Deferred maintenance
+T2693,F456,93.5,emergency,4,Emergency,1,6.5,87.0,0.7,2026-03-15,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T0168,F084,93.5,emergency,4,Emergency,1,6.5,87.0,2.0,2026-04-09,"high oil_quality_index, high maintenance_score, high load_factor",Oil degradation/contamination
+T0118,F070,93.5,emergency,4,Emergency,1,6.5,87.0,0.3,2025-07-15,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T1232,F367,93.3,emergency,4,Emergency,1,6.7,86.6,1.0,2026-05-07,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T1692,F445,93.3,emergency,4,Emergency,1,6.7,86.6,0.3,2026-04-13,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T1390,F455,92.8,emergency,4,Emergency,1,7.2,85.6,0.8,2026-05-12,"high temperature_rise_c, high maintenance_score, high age_years",Overheating
+T0500,F213,92.7,emergency,4,Emergency,1,7.3,85.4,0.5,2026-03-26,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T2358,F110,92.7,emergency,4,Emergency,1,7.3,85.4,0.6,2026-02-22,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T0117,F019,92.7,emergency,4,Emergency,1,7.3,85.4,1.8,2026-01-03,"high maintenance_score, high oil_quality_index, high load_factor",Deferred maintenance
+T1059,F213,92.7,emergency,4,Emergency,1,7.3,85.4,0.4,2026-04-02,"high temperature_rise_c, high age_years, high maintenance_score",Overheating
+T0416,F339,92.7,emergency,4,Emergency,1,7.3,85.4,1.5,2025-08-12,"high maintenance_score, high temperature_rise_c, high oil_quality_index",Deferred maintenance
+T2126,F128,92.6,emergency,4,Emergency,1,7.4,85.2,1.3,2026-01-09,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T0841,F145,92.5,emergency,4,Emergency,1,7.5,85.0,1.8,2025-12-21,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
+T0252,F247,92.5,emergency,4,Emergency,1,7.5,85.0,0.6,2026-07-08,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T2266,F048,92.2,emergency,4,Emergency,1,7.8,84.4,1.6,2026-01-30,"high load_factor, high temperature_rise_c, high age_years",Overloading
+T2962,F211,92.1,emergency,4,Emergency,1,7.9,84.2,0.8,2026-06-12,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
+T2569,F190,91.7,emergency,4,Emergency,1,8.3,83.4,0.7,2026-02-19,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T2645,F227,91.7,emergency,4,Emergency,1,8.3,83.4,0.4,2025-12-10,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T1949,F001,91.6,emergency,4,Emergency,1,8.4,83.2,0.5,2026-05-29,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T2448,F324,91.6,emergency,4,Emergency,1,8.4,83.2,0.8,2026-06-01,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T1950,F161,91.6,emergency,4,Emergency,1,8.4,83.2,0.6,2026-06-29,"high age_years, high load_factor, high temperature_rise_c",End-of-life wear
+T0871,F229,91.5,emergency,4,Emergency,1,8.5,83.0,2.4,2026-05-18,"high oil_quality_index, high maintenance_score, high load_factor",Oil degradation/contamination
+T2777,F262,91.5,emergency,4,Emergency,1,8.5,83.0,2.0,2026-02-24,"high temperature_rise_c, high load_factor, high age_years",Overheating
+T0342,F146,91.4,emergency,4,Emergency,1,8.6,82.8,2.3,2026-03-29,"high temperature_rise_c, high maintenance_score, high load_factor",Overheating
+T1853,F228,91.4,emergency,4,Emergency,1,8.6,82.8,0.4,2026-06-29,"high temperature_rise_c, high age_years, high oil_quality_index",Overheating
+T1801,F029,91.4,emergency,4,Emergency,1,8.6,82.8,0.4,2026-04-23,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T0631,F369,91.3,emergency,4,Emergency,1,8.7,82.6,1.1,2026-02-02,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T2311,F141,91.2,emergency,4,Emergency,1,8.8,82.4,2.8,2026-01-18,"high oil_quality_index, high maintenance_score, high load_factor",Oil degradation/contamination
+T2219,F144,91.2,emergency,4,Emergency,1,8.8,82.4,0.7,2026-03-15,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T0858,F029,91.2,emergency,4,Emergency,1,8.8,82.4,1.6,2026-01-24,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T2375,F350,91.2,emergency,4,Emergency,1,8.8,82.4,1.0,2026-03-11,"high temperature_rise_c, high maintenance_score, high age_years",Overheating
+T2642,F249,91.1,emergency,4,Emergency,1,8.9,82.2,1.8,2025-08-17,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
+T1451,F147,91.1,emergency,4,Emergency,1,8.9,82.2,0.4,2025-11-07,"high maintenance_score, high age_years, high load_factor",Deferred maintenance
+T2143,F482,91.1,emergency,4,Emergency,1,8.9,82.2,1.5,2025-12-23,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T0328,F019,91.1,emergency,4,Emergency,1,8.9,82.2,0.4,2026-07-01,"high temperature_rise_c, high age_years, high load_factor",Overheating
+T1028,F141,91.1,emergency,4,Emergency,1,8.9,82.2,1.3,2025-12-04,"high age_years, high maintenance_score, high oil_quality_index",End-of-life wear
+T1333,F213,91.0,emergency,4,Emergency,1,9.0,82.0,0.4,2026-06-04,"high temperature_rise_c, high age_years, high maintenance_score",Overheating
+T0417,F485,90.9,emergency,4,Emergency,1,9.1,81.8,1.2,2026-04-16,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T0320,F385,90.9,emergency,4,Emergency,1,9.1,81.8,2.3,2026-05-08,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
+T0265,F495,90.9,emergency,4,Emergency,1,9.1,81.8,0.5,2026-03-05,"high temperature_rise_c, high age_years, high oil_quality_index",Overheating
+T1426,F408,90.9,emergency,4,Emergency,1,9.1,81.8,0.5,2025-11-24,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
+T2745,F100,90.7,emergency,4,Emergency,1,9.3,81.4,1.1,2025-12-17,"high maintenance_score, high age_years, high oil_quality_index",Deferred maintenance
+T0744,F136,90.7,emergency,4,Emergency,1,9.3,81.4,1.2,2025-11-26,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T2813,F099,90.6,emergency,4,Emergency,1,9.4,81.2,1.7,2025-11-12,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
+T1170,F459,90.4,emergency,4,Emergency,1,9.6,80.8,1.0,2026-07-01,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T1643,F224,90.4,emergency,4,Emergency,1,9.6,80.8,0.7,2026-05-18,"high age_years, high load_factor, high temperature_rise_c",End-of-life wear
+T0609,F484,90.3,emergency,4,Emergency,1,9.7,80.6,1.8,2025-11-26,"high maintenance_score, high temperature_rise_c, high age_years",Deferred maintenance
+T1742,F372,90.3,emergency,4,Emergency,1,9.7,80.6,1.6,2026-07-08,"high temperature_rise_c, high maintenance_score, high age_years",Overheating
+T1371,F441,90.3,emergency,4,Emergency,1,9.7,80.6,0.5,2026-05-16,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
+T2472,F050,90.3,emergency,4,Emergency,1,9.7,80.6,1.3,2026-03-02,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T2575,F387,90.2,emergency,4,Emergency,1,9.8,80.4,2.4,2026-05-09,"high maintenance_score, high temperature_rise_c, high load_factor",Deferred maintenance
+T2746,F203,90.0,emergency,4,Emergency,1,10.0,80.0,1.2,2024-08-07,"high maintenance_score, high age_years, low load_factor",Deferred maintenance
+T1361,F042,89.8,emergency,4,Emergency,1,10.2,79.6,0.5,2026-02-16,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T2137,F273,89.8,emergency,4,Emergency,1,10.2,79.6,2.2,2026-06-15,"high temperature_rise_c, high load_factor, high age_years",Overheating
+T1652,F010,89.7,emergency,4,Emergency,1,10.3,79.4,0.6,2026-01-28,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
+T0995,F265,89.7,emergency,4,Emergency,1,10.3,79.4,1.4,2026-06-20,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T1606,F446,89.5,emergency,4,Emergency,1,10.5,79.0,1.0,2026-06-30,"high maintenance_score, high age_years, high oil_quality_index",Deferred maintenance
+T0021,F251,89.2,emergency,4,Emergency,1,10.8,78.4,1.5,2026-05-04,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
+T2043,F374,89.2,emergency,4,Emergency,1,10.8,78.4,2.5,2025-12-25,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
+T2514,F378,89.0,emergency,4,Emergency,1,11.0,78.0,1.7,2026-05-15,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T1224,F328,89.0,emergency,4,Emergency,1,11.0,78.0,2.4,2025-11-20,"high temperature_rise_c, high maintenance_score, high oil_quality_index",Overheating
+T2456,F239,89.0,emergency,4,Emergency,1,11.0,78.0,0.6,2026-05-23,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T1540,F311,88.8,emergency,4,Emergency,1,11.2,77.6,0.8,2026-07-18,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T1685,F180,88.7,emergency,4,Emergency,1,11.3,77.4,1.8,2026-04-27,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
+T0636,F343,88.7,emergency,4,Emergency,1,11.3,77.4,2.4,2026-05-18,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
+T2088,F332,88.6,emergency,4,Emergency,1,11.4,77.2,2.5,2025-11-15,"high oil_quality_index, high maintenance_score, high load_factor",Oil degradation/contamination
+T0608,F258,88.6,emergency,4,Emergency,1,11.4,77.2,3.6,2026-06-15,"high temperature_rise_c, high maintenance_score, high load_factor",Overheating
+T2406,F415,88.5,emergency,4,Emergency,1,11.5,77.0,2.6,2026-07-07,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
+T1405,F089,88.1,emergency,4,Emergency,1,11.9,76.2,3.5,2026-06-25,"high maintenance_score, high load_factor, high oil_quality_index",Deferred maintenance
+T0745,F398,87.8,emergency,4,Emergency,1,12.2,75.6,0.6,2026-03-12,"high temperature_rise_c, high age_years, high load_factor",Overheating
+T2077,F233,87.7,emergency,4,Emergency,1,12.3,75.4,0.6,2026-03-06,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T0586,F463,87.7,emergency,4,Emergency,1,12.3,75.4,0.6,2026-05-28,"high temperature_rise_c, high age_years, low maintenance_score",Overheating
+T2435,F226,87.5,emergency,4,Emergency,1,12.5,75.0,2.9,2026-06-19,"high maintenance_score, high load_factor, high oil_quality_index",Deferred maintenance
+T2481,F326,87.5,emergency,4,Emergency,1,12.5,75.0,3.2,2026-06-05,"high load_factor, high maintenance_score, high temperature_rise_c",Overloading
+T0305,F272,87.4,emergency,4,Emergency,1,12.6,74.8,4.9,2026-05-16,"high oil_quality_index, high maintenance_score, low age_years",Oil degradation/contamination
+T0472,F403,87.3,emergency,4,Emergency,1,12.7,74.6,1.4,2026-03-11,"high temperature_rise_c, high age_years, high maintenance_score",Overheating
+T1700,F481,87.2,emergency,4,Emergency,1,12.8,74.4,0.6,2026-05-11,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
+T0702,F309,87.1,emergency,4,Emergency,1,12.9,74.2,2.6,2026-01-09,"high temperature_rise_c, high maintenance_score, high age_years",Overheating
+T1882,F133,87.0,emergency,4,Emergency,1,13.0,74.0,0.6,2026-07-21,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
+T2270,F489,86.6,emergency,4,Emergency,1,13.4,73.2,2.9,2026-07-27,"high temperature_rise_c, high maintenance_score, high age_years",Overheating
+T2356,F184,86.5,emergency,4,Emergency,1,13.5,73.0,2.5,2026-05-15,"high maintenance_score, high age_years, high load_factor",Deferred maintenance
+T1466,F056,86.4,emergency,4,Emergency,1,13.6,72.8,1.7,2026-06-02,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
+T1948,F459,86.3,emergency,4,Emergency,1,13.7,72.6,0.7,2025-10-31,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T2319,F426,86.2,emergency,4,Emergency,1,13.8,72.4,2.0,2026-06-20,"high temperature_rise_c, high age_years, high load_factor",Overheating
+T0346,F128,86.2,emergency,4,Emergency,1,13.8,72.4,2.0,2026-05-24,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T0842,F329,86.1,emergency,4,Emergency,1,13.9,72.2,3.1,2026-04-11,"high maintenance_score, high temperature_rise_c, high load_factor",Deferred maintenance
+T0939,F231,86.0,emergency,4,Emergency,1,14.0,72.0,2.1,2026-01-22,"high maintenance_score, high age_years, high oil_quality_index",Deferred maintenance
+T2133,F260,85.9,emergency,4,Emergency,1,14.1,71.8,1.9,2026-07-22,"high age_years, high maintenance_score, high load_factor",End-of-life wear
+T1118,F294,85.9,emergency,4,Emergency,1,14.1,71.8,4.0,2026-03-07,"high maintenance_score, high oil_quality_index, low load_factor",Deferred maintenance
+T0579,F447,85.9,emergency,4,Emergency,1,14.1,71.8,2.2,2026-06-26,"high maintenance_score, high age_years, high oil_quality_index",Deferred maintenance
+T0180,F251,85.9,emergency,4,Emergency,1,14.1,71.8,3.2,2025-10-30,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
+T2352,F376,85.8,emergency,4,Emergency,1,14.2,71.6,1.2,2026-07-08,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
+T2494,F306,85.8,emergency,4,Emergency,1,14.2,71.6,2.1,2026-02-23,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T0511,F498,85.8,emergency,4,Emergency,1,14.2,71.6,3.4,2025-10-01,"high oil_quality_index, high maintenance_score, high load_factor",Oil degradation/contamination
+T2678,F440,85.7,emergency,4,Emergency,1,14.3,71.4,2.8,2026-05-06,"high maintenance_score, high temperature_rise_c, high age_years",Deferred maintenance
+T0541,F355,85.7,emergency,4,Emergency,1,14.3,71.4,1.7,2026-07-17,"high age_years, high load_factor, high temperature_rise_c",End-of-life wear
+T0830,F015,85.5,emergency,4,Emergency,1,14.5,71.0,0.7,2026-06-06,"high temperature_rise_c, high age_years, high oil_quality_index",Overheating
+T0429,F013,85.5,emergency,4,Emergency,1,14.5,71.0,0.7,2025-06-13,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T2498,F445,85.5,emergency,4,Emergency,1,14.5,71.0,0.7,2025-11-24,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T2542,F486,85.5,emergency,4,Emergency,1,14.5,71.0,4.7,2025-11-20,"high oil_quality_index, high maintenance_score, high load_factor",Oil degradation/contamination
+T2458,F468,85.3,emergency,4,Emergency,1,14.7,70.6,3.7,2026-04-27,"high load_factor, high maintenance_score, high age_years",Overloading
+T2115,F371,85.2,emergency,4,Emergency,1,14.8,70.4,3.9,2026-03-01,"high temperature_rise_c, high maintenance_score, high load_factor",Overheating
+T0880,F316,85.1,emergency,4,Emergency,1,14.9,70.2,3.2,2026-07-04,"high load_factor, high temperature_rise_c, high age_years",Overloading
+T0696,F127,85.1,emergency,4,Emergency,1,14.9,70.2,3.5,2025-07-26,"high maintenance_score, high temperature_rise_c, high oil_quality_index",Deferred maintenance
+T0758,F192,84.9,emergency,4,Emergency,1,15.1,69.8,0.8,2026-05-23,"high temperature_rise_c, high age_years, high oil_quality_index",Overheating
+T0314,F141,84.8,emergency,4,Emergency,1,15.2,69.6,3.0,2026-06-09,"high temperature_rise_c, high load_factor, low maintenance_score",Overheating
+T1211,F312,84.8,emergency,4,Emergency,1,15.2,69.6,0.8,2026-02-01,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T1269,F477,84.6,emergency,4,Emergency,1,15.4,69.2,4.2,2025-10-31,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
+T0692,F398,84.6,emergency,4,Emergency,1,15.4,69.2,3.5,2026-06-23,"high oil_quality_index, high maintenance_score, high temperature_rise_c",Oil degradation/contamination
+T0232,F429,84.6,emergency,4,Emergency,1,15.4,69.2,2.2,2026-04-01,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T2231,F317,84.6,emergency,4,Emergency,1,15.4,69.2,3.6,2026-04-10,"high maintenance_score, high temperature_rise_c, high oil_quality_index",Deferred maintenance
+T0803,F258,84.5,emergency,4,Emergency,1,15.5,69.0,3.3,2026-02-04,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
+T0781,F439,84.2,emergency,4,Emergency,1,15.8,68.4,4.7,2026-04-16,"high maintenance_score, high oil_quality_index, high load_factor",Deferred maintenance
+T1625,F277,83.9,emergency,4,Emergency,1,16.1,67.8,4.2,2026-06-04,"high temperature_rise_c, high maintenance_score, high oil_quality_index",Overheating
+T2291,F198,83.5,emergency,4,Emergency,1,16.5,67.0,3.8,2026-01-11,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
+T0080,F335,83.5,emergency,4,Emergency,1,16.5,67.0,3.5,2026-01-21,"high maintenance_score, high age_years, high oil_quality_index",Deferred maintenance
+T2420,F210,83.2,emergency,4,Emergency,1,16.8,66.4,4.7,2025-10-25,"high maintenance_score, high temperature_rise_c, high load_factor",Deferred maintenance
+T1106,F091,83.2,emergency,4,Emergency,1,16.8,66.4,2.3,2026-07-24,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T0646,F165,83.1,emergency,4,Emergency,1,16.9,66.2,3.6,2025-08-15,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
+T1917,F142,83.1,emergency,4,Emergency,1,16.9,66.2,3.1,2026-04-11,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T0525,F160,83.0,emergency,4,Emergency,1,17.0,66.0,3.0,2026-05-27,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T1813,F337,83.0,emergency,4,Emergency,1,17.0,66.0,3.0,2026-03-15,"high maintenance_score, high age_years, high oil_quality_index",Deferred maintenance
+T0771,F326,82.8,emergency,4,Emergency,1,17.2,65.6,2.0,2026-02-10,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
+T2519,F072,82.8,emergency,4,Emergency,1,17.2,65.6,5.7,2026-03-16,"high maintenance_score, high oil_quality_index, low age_years",Deferred maintenance
+T1164,F266,82.6,emergency,4,Emergency,1,17.4,65.2,4.8,2025-09-04,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
+T2682,F051,82.5,emergency,4,Emergency,1,17.5,65.0,1.2,2026-04-18,"high age_years, high temperature_rise_c, low load_factor",End-of-life wear
+T1560,F428,82.5,emergency,4,Emergency,1,17.5,65.0,1.9,2026-04-27,"high temperature_rise_c, high age_years, high load_factor",Overheating
+T2592,F190,82.4,emergency,4,Emergency,1,17.6,64.8,0.9,2025-12-24,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
+T0964,F109,82.3,emergency,4,Emergency,1,17.7,64.6,3.9,2025-06-26,"high maintenance_score, high temperature_rise_c, high oil_quality_index",Deferred maintenance
+T2222,F077,82.2,emergency,4,Emergency,1,17.8,64.4,1.7,2026-07-04,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T2549,F236,82.2,emergency,4,Emergency,1,17.8,64.4,2.1,2025-09-15,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T0104,F004,82.1,emergency,4,Emergency,1,17.9,64.2,5.3,2026-06-23,"high temperature_rise_c, high maintenance_score, high oil_quality_index",Overheating
+T2737,F288,82.1,emergency,4,Emergency,1,17.9,64.2,2.4,2026-07-23,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
+T1407,F174,82.0,emergency,4,Emergency,1,18.0,64.0,6.2,2025-02-28,"high maintenance_score, high oil_quality_index, low age_years",Deferred maintenance
+T2691,F365,81.9,emergency,4,Emergency,1,18.1,63.8,0.9,2026-06-10,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T1132,F336,81.6,emergency,4,Emergency,1,18.4,63.2,6.2,2026-05-16,"high oil_quality_index, high maintenance_score, low age_years",Oil degradation/contamination
+T2021,F152,81.5,emergency,4,Emergency,1,18.5,63.0,5.1,2025-11-13,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
+T2617,F497,81.2,emergency,4,Emergency,1,18.8,62.4,3.0,2026-05-14,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
+T1738,F050,81.1,emergency,4,Emergency,1,18.9,62.2,2.5,2026-04-11,"high temperature_rise_c, high age_years, high maintenance_score",Overheating
+T0689,F223,81.0,emergency,4,Emergency,1,19.0,62.0,2.0,2026-01-18,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T0903,F110,81.0,emergency,4,Emergency,1,19.0,62.0,2.7,2026-03-04,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T2487,F123,80.6,emergency,4,Emergency,1,19.4,61.2,1.8,2025-07-23,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
+T0766,F391,80.4,emergency,4,Emergency,1,19.6,60.8,4.2,2026-06-16,"high temperature_rise_c, high age_years, high load_factor",Overheating
+T0918,F393,80.2,emergency,4,Emergency,1,19.8,60.4,4.0,2026-05-10,"high temperature_rise_c, high load_factor, high age_years",Overheating
+T2413,F466,80.1,emergency,4,Emergency,1,19.9,60.2,7.2,2025-12-15,"high oil_quality_index, high maintenance_score, low age_years",Oil degradation/contamination
+T2730,F231,80.0,emergency,4,Emergency,1,20.0,60.0,2.5,2026-07-24,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
+T1363,F176,79.9,emergency,4,Emergency,1,20.1,59.8,4.0,2026-06-08,"high temperature_rise_c, high age_years, high maintenance_score",Overheating
+T1920,F265,79.8,emergency,4,Emergency,1,20.2,59.6,2.8,2025-11-09,"high maintenance_score, high age_years, high oil_quality_index",Deferred maintenance
+T0299,F143,79.7,emergency,4,Emergency,1,20.3,59.4,3.8,2026-04-28,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T0435,F217,79.7,emergency,4,Emergency,1,20.3,59.4,2.3,2026-05-08,"high temperature_rise_c, high age_years, high maintenance_score",Overheating
+T1818,F127,79.5,emergency,4,Emergency,1,20.5,59.0,4.1,2026-06-13,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T1822,F383,79.5,emergency,4,Emergency,1,20.5,59.0,1.9,2026-07-11,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T2879,F436,79.4,emergency,4,Emergency,1,20.6,58.8,3.3,2026-04-02,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T0675,F311,79.3,emergency,4,Emergency,1,20.7,58.6,1.0,2026-03-10,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
+T1378,F376,78.9,emergency,4,Emergency,1,21.1,57.8,5.7,2025-12-31,"high maintenance_score, high oil_quality_index, high temperature_rise_c",Deferred maintenance
+T1395,F108,78.9,emergency,4,Emergency,1,21.1,57.8,3.5,2026-03-17,"high maintenance_score, high age_years, high oil_quality_index",Deferred maintenance
+T0268,F174,78.8,emergency,4,Emergency,1,21.2,57.6,3.6,2025-12-11,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
+T0985,F294,78.5,emergency,4,Emergency,1,21.5,57.0,6.9,2026-04-02,"high maintenance_score, high load_factor, high oil_quality_index",Deferred maintenance
+T0154,F147,78.5,emergency,4,Emergency,1,21.5,57.0,1.1,2026-03-26,"high temperature_rise_c, high age_years, high oil_quality_index",Overheating
+T0425,F209,78.4,emergency,4,Emergency,1,21.6,56.8,5.9,2026-04-24,"high maintenance_score, high load_factor, high oil_quality_index",Deferred maintenance
+T0421,F464,78.3,emergency,4,Emergency,1,21.7,56.6,5.4,2026-01-24,"high maintenance_score, high oil_quality_index, high temperature_rise_c",Deferred maintenance
+T2581,F192,78.2,emergency,4,Emergency,1,21.8,56.4,4.7,2026-07-23,"high maintenance_score, high oil_quality_index, high age_years",Deferred maintenance
+T0989,F124,78.2,emergency,4,Emergency,1,21.8,56.4,2.6,2026-06-02,"high temperature_rise_c, high age_years, high load_factor",Overheating
+T0977,F048,78.1,emergency,4,Emergency,1,21.9,56.2,1.2,2026-03-05,"high age_years, high temperature_rise_c, low maintenance_score",End-of-life wear
+T0770,F189,78.1,emergency,4,Emergency,1,21.9,56.2,3.9,2026-05-15,"high age_years, high temperature_rise_c, high maintenance_score",End-of-life wear
+T1351,F031,78.0,emergency,4,Emergency,1,22.0,56.0,1.1,2026-07-03,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T2889,F075,78.0,emergency,4,Emergency,1,22.0,56.0,6.8,2026-01-31,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
+T0677,F291,77.8,emergency,4,Emergency,1,22.2,55.6,4.2,2025-12-22,"high maintenance_score, high temperature_rise_c, high age_years",Deferred maintenance
+T2298,F246,77.6,emergency,4,Emergency,1,22.4,55.2,5.1,2026-03-21,"high maintenance_score, high oil_quality_index, high temperature_rise_c",Deferred maintenance
+T0783,F062,77.6,emergency,4,Emergency,1,22.4,55.2,7.1,2026-04-25,"high maintenance_score, high oil_quality_index, low age_years",Deferred maintenance
+T2806,F485,77.5,emergency,4,Emergency,1,22.5,55.0,6.5,2026-06-02,"high maintenance_score, high temperature_rise_c, high oil_quality_index",Deferred maintenance
+T1155,F153,77.3,emergency,4,Emergency,1,22.7,54.6,1.6,2026-02-27,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T0455,F299,77.2,emergency,4,Emergency,1,22.8,54.4,3.8,2026-03-18,"high age_years, high oil_quality_index, high temperature_rise_c",End-of-life wear
+T0932,F350,76.7,emergency,4,Emergency,1,23.3,53.4,4.9,2025-09-18,"high maintenance_score, high oil_quality_index, high temperature_rise_c",Deferred maintenance
+T2736,F070,76.7,emergency,4,Emergency,1,23.3,53.4,1.2,2026-06-23,"high temperature_rise_c, high age_years, low maintenance_score",Overheating
+T1644,F298,76.7,emergency,4,Emergency,1,23.3,53.4,6.4,2026-06-20,"high maintenance_score, high load_factor, high temperature_rise_c",Deferred maintenance
+T0676,F363,76.7,emergency,4,Emergency,1,23.3,53.4,1.2,2026-04-14,"high temperature_rise_c, high age_years, high oil_quality_index",Overheating
+T2657,F030,76.6,emergency,4,Emergency,1,23.4,53.2,5.0,2026-02-19,"high maintenance_score, high age_years, high temperature_rise_c",Deferred maintenance
+T1354,F458,76.0,emergency,4,Emergency,1,24.0,52.0,1.2,2026-04-22,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
+T2941,F358,75.9,emergency,4,Emergency,1,24.1,51.8,5.4,2026-03-13,"high maintenance_score, high oil_quality_index, high temperature_rise_c",Deferred maintenance
+T1149,F345,75.4,emergency,4,Emergency,1,24.6,50.8,4.3,2026-05-19,"high age_years, high temperature_rise_c, high load_factor",End-of-life wear
+T2208,F420,75.4,emergency,4,Emergency,1,24.6,50.8,4.1,2026-07-30,"high maintenance_score, high age_years, low load_factor",Deferred maintenance
+T2797,F436,75.3,emergency,4,Emergency,1,24.7,50.6,4.7,2026-04-05,"high maintenance_score, high age_years, high load_factor",Deferred maintenance
+T0408,F072,75.3,emergency,4,Emergency,1,24.7,50.6,3.9,2026-07-20,"high age_years, high temperature_rise_c, high oil_quality_index",End-of-life wear
 T2433,F082,75.0,elevated,3,Warning,1,25.0,50.0,3.8,2026-03-23,"high age_years, high maintenance_score, high temperature_rise_c",End-of-life wear
 T2040,F225,74.6,elevated,3,Warning,1,25.4,49.2,2.0,2026-05-13,"high age_years, high temperature_rise_c, low maintenance_score",End-of-life wear
 T1611,F389,74.6,elevated,3,Warning,1,25.4,49.2,4.3,2026-03-19,"high age_years, high maintenance_score, high load_factor",End-of-life wear

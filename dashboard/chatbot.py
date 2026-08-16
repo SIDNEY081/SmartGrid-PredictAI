@@ -4,7 +4,7 @@ SmartGrid PredictAI - Dashboard Chat
 A small rule-based (not LLM-backed) query engine over the three score CSVs.
 No external API, no network dependency, no cost - just keyword matching
 against a question, mapped onto a pandas filter. Good enough for "how many
-transformers are critical?" or "why is T0208 high risk?" style questions;
+transformers are emergency?" or "why is T0208 high risk?" style questions;
 not a general chatbot. Shared by both dashboard/app.py (Flask) and
 dashboard/streamlit_app.py (Streamlit) - the same rules answer either UI.
 """
@@ -51,11 +51,11 @@ ENTITIES = {
     },
 }
 
-TIERS = ["low", "moderate", "elevated", "critical"]
+TIERS = ["low", "moderate", "elevated", "emergency"]
 # Older/alternate wording someone might still say out loud even though the
 # dashboard itself standardized on the four words above.
 TIER_SYNONYMS = {
-    "urgent": "critical", "high": "elevated", "medium": "moderate",
+    "urgent": "emergency", "critical": "emergency", "high": "elevated", "medium": "moderate",
 }
 
 # Optional hyphen/space between the prefix letter and the digits, e.g.
@@ -68,7 +68,7 @@ HELP_PATTERN = re.compile(r"\b(help|what can you (do|ask)|options|commands)\b")
 # Follow-up references to the specific id from a prior turn, e.g. "why is
 # it flagged?" or "what about that one?" right after asking about T0208.
 PRONOUN_PATTERN = re.compile(r"\b(it|that one|this one)\b")
-# "high-risk"/"high risk" as a two-tier alias (elevated + critical), checked
+# "high-risk"/"high risk" as a two-tier alias (elevated + emergency), checked
 # ahead of the single-tier TIER_SYNONYMS "high" -> "elevated" mapping.
 HIGH_RISK_PATTERN = re.compile(r"\bhigh[\s-]?risk\b")
 
@@ -79,21 +79,21 @@ TRANSFORMER_ONLY_KEYWORDS = (
     "predict", "health", "recommend", "history", "find", "search", "where", "trend", "report",
 )
 
-# 3-value Healthy/Warning/Critical status now comes from the "status" column
+# 3-value Healthy/Warning/Emergency status now comes from the "status" column
 # models/failure_prediction.py and models/outage_forecasting.py write into
 # the scores CSVs (derived from the 4-tier risk_tier - see
 # models/failure_prediction.py's TIER_TO_STATUS).
 
 HELP_TEXT = (
     "I can answer questions about transformers, meters, and feeders. Try things like:\n"
-    "• “how many transformers are critical?”\n"
+    "• “how many transformers are emergency?”\n"
     "• “what's the risk score for T0208?”\n"
     "• “why is T0208 high risk?”\n"
-    "• “why are feeders critical?” (most common reasons across a group)\n"
+    "• “why are feeders emergency?” (most common reasons across a group)\n"
     "• “top 5 riskiest meters”\n"
     "• “average anomaly score for meters”\n"
     "• “which feeders are flagged?”\n"
-    "• “which transformers are high-risk?” (elevated or critical)\n"
+    "• “which transformers are high-risk?” (elevated or emergency)\n"
     "Transformer-specific: “predict T0208”, “health of T0208”, “recommend "
     "actions for T0208”, “maintenance history of T0208”, “find T0208”, "
     "“trend for T0208”, “compare T0208 and T0301”, “generate report for T0208”\n"
@@ -492,8 +492,8 @@ def answer(raw_message, data_dir, context=None):
     subset = df
     label_bits = [entity_key + "s"]
     if high_risk:
-        subset = subset[subset[cfg["tier_col"]].isin(["elevated", "critical"])]
-        label_bits.append("at high risk (elevated or critical)")
+        subset = subset[subset[cfg["tier_col"]].isin(["elevated", "emergency"])]
+        label_bits.append("at high risk (elevated or emergency)")
     elif tier:
         subset = subset[subset[cfg["tier_col"]] == tier]
         label_bits.append(f"in the {tier} tier")

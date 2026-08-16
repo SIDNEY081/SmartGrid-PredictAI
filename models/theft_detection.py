@@ -28,8 +28,8 @@ NUMERIC_FEATURES = [
 TARGET = "is_theft"  # used for evaluation only, not for training
 
 # Numeric companion to priority_tier so BI tools (Power BI, Tableau) can sort
-# by severity instead of alphabetically (Critical, Elevated, Low, Moderate).
-TIER_ORDER = {"low": 1, "moderate": 2, "elevated": 3, "critical": 4}
+# by severity instead of alphabetically (Emergency, Elevated, Low, Moderate).
+TIER_ORDER = {"low": 1, "moderate": 2, "elevated": 3, "emergency": 4}
 
 
 def load_data(path="data/meter_data.csv"):
@@ -82,12 +82,12 @@ def score_all_meters(df, scaler, feature_cols, anomaly_score_0_100, flagged, mod
     result["anomaly_score"] = anomaly_score_0_100.round(1)
     result["investigation_flag"] = flagged.astype(int)
     # Same four-level severity scale as the other two models (low/moderate/
-    # elevated/critical) - the labels used to differ ("urgent" instead of
-    # "critical") purely because this script was written independently of
+    # elevated/emergency) - the labels used to differ ("urgent" instead of
+    # "emergency") purely because this script was written independently of
     # failure_prediction.py, not because it means anything different.
     result["priority_tier"] = pd.cut(
         result["anomaly_score"], bins=[-0.1, 40, 65, 85, 100],
-        labels=["low", "moderate", "elevated", "critical"]
+        labels=["low", "moderate", "elevated", "emergency"]
     )
     result["priority_tier_order"] = result["priority_tier"].map(TIER_ORDER)
 

@@ -2,7 +2,7 @@ import knowledge_base as kb
 
 
 def test_maintenance_actions_covers_all_tiers():
-    assert set(kb.MAINTENANCE_ACTIONS.keys()) == {"critical", "elevated", "moderate", "low"}
+    assert set(kb.MAINTENANCE_ACTIONS.keys()) == {"emergency", "elevated", "moderate", "low"}
     for actions in kb.MAINTENANCE_ACTIONS.values():
         assert len(actions) > 0
 

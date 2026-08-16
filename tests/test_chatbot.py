@@ -10,10 +10,10 @@ DATA = ROOT / "data"
 
 def test_count_query_matches_real_data():
     df = pd.read_csv(DATA / "feeder_outage_scores.csv")
-    expected = (df["risk_tier"] == "critical").sum()
-    reply = chatbot.answer("how many feeders are critical?", DATA)
+    expected = (df["risk_tier"] == "emergency").sum()
+    reply = chatbot.answer("how many feeders are emergency?", DATA)
     assert str(expected) in reply
-    assert "critical" in reply.lower()
+    assert "emergency" in reply.lower()
 
 
 def test_flagged_query_matches_real_data():
@@ -62,9 +62,9 @@ def test_why_id_query_surfaces_reasons():
 
 def test_why_aggregate_query_returns_common_reasons():
     df = pd.read_csv(DATA / "feeder_outage_scores.csv")
-    critical = df[df["risk_tier"] == "critical"]
-    reply = chatbot.answer("why are feeders critical?", DATA)
-    assert str(len(critical)) in reply
+    emergency = df[df["risk_tier"] == "emergency"]
+    reply = chatbot.answer("why are feeders emergency?", DATA)
+    assert str(len(emergency)) in reply
     assert "Most common reasons" in reply
 
 
@@ -96,7 +96,7 @@ def test_followup_without_context_has_no_pronoun_to_resolve():
 
 def test_followup_omitted_entity_reuses_last_entity():
     context = {}
-    chatbot.answer("how many transformers are critical?", DATA, context=context)
+    chatbot.answer("how many transformers are emergency?", DATA, context=context)
     reply = chatbot.answer("which are flagged?", DATA, context=context)
     assert "transformer" in reply.lower()
 
@@ -215,8 +215,8 @@ def test_report_reply_mentions_pdf_path():
     assert ".pdf" in reply
 
 
-def test_high_risk_alias_includes_elevated_and_critical():
+def test_high_risk_alias_includes_elevated_and_emergency():
     df = pd.read_csv(DATA / "transformer_risk_scores.csv")
-    expected = df["risk_tier"].isin(["elevated", "critical"]).sum()
+    expected = df["risk_tier"].isin(["elevated", "emergency"]).sum()
     reply = chatbot.answer("how many transformers are high-risk?", DATA)
     assert str(expected) in reply

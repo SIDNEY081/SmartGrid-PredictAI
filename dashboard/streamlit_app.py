@@ -45,8 +45,8 @@ st.set_page_config(page_title="SmartGrid PredictAI", layout="wide", page_icon="â
 # ramp (never reused for anything else) and a blue/red diverging pair
 # reserved for SHAP contribution direction (increases vs decreases risk).
 ACCENT = {"transformer": "#2a78d6", "meter": "#eb6834", "feeder": "#1baf7a"}
-STATUS_COLORS = ["#0ca30c", "#fab219", "#ec835a", "#d03b3b"]  # low, moderate, elevated, critical
-TIER_ORDER = ["low", "moderate", "elevated", "critical"]
+STATUS_COLORS = ["#0ca30c", "#fab219", "#ec835a", "#d03b3b"]  # low, moderate, elevated, emergency
+TIER_ORDER = ["low", "moderate", "elevated", "emergency"]
 CONTRIB_UP, CONTRIB_DOWN = "#e34948", "#2a78d6"  # pushes score up / down
 
 st.markdown(
@@ -706,7 +706,7 @@ with tab_theft:
         [
             (f"{len(scores):,}", "Total meters"),
             (f"{len(suspected):,}", "Suspected theft cases"),
-            (f"{int((scores['priority_tier'] == 'critical').sum()):,}", "Critical tier"),
+            (f"{int((scores['priority_tier'] == 'emergency').sum()):,}", "Emergency tier"),
             (f"{scores['anomaly_score'].mean():.1f}", "Average anomaly score"),
         ],
         ACCENT["meter"],

@@ -10,7 +10,7 @@
   --status-good: #0ca30c;
   --status-warning: #fab219;
   --status-serious: #ec835a;
-  --status-critical: #d03b3b;
+  --status-emergency: #d03b3b;
 
   --brand-1: #2a78d6;
   --brand-2: #1baf7a;
@@ -161,8 +161,8 @@ body {
 
 .logout-btn:hover {
   background: #fdeceb;
-  color: var(--status-critical);
-  border-color: var(--status-critical);
+  color: var(--status-emergency);
+  border-color: var(--status-emergency);
 }
 
 main {
@@ -282,6 +282,34 @@ section.panel[data-panel="feeder"] .stat-tile:hover { border-color: #1baf7a; }
 @media (max-width: 900px) {
   .content-grid { grid-template-columns: 1fr; }
   .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Flagged transformers grouped by feeder (route-planning view) - a scrolling
+   stack of per-feeder mini-tables instead of one flat ranked list. */
+.feeder-groups {
+  max-height: 560px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.feeder-group {
+  margin-bottom: 18px;
+}
+
+.feeder-group:last-child {
+  margin-bottom: 0;
+}
+
+.feeder-group-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.feeder-group-count {
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 table.score-table {
@@ -777,6 +805,36 @@ table.compare-table th {
   font-style: italic;
 }
 
+/* Technician: Transformers / Meters entity switch, above the subtabs below */
+.tech-entity-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tech-entity-btn {
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--page-plane);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.tech-entity-btn:hover {
+  color: var(--text-primary);
+}
+
+.tech-entity-btn.active {
+  color: #ffffff;
+  background: var(--brand-1);
+  border-color: var(--brand-1);
+}
+
 /* Technician: Assigned / Recently Inspected subtabs + transformer picker */
 .tech-subtabs {
   display: flex;
@@ -833,6 +891,27 @@ table.compare-table th {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Assigned transformers: a responsive grid of cards (one per assignment),
+   sorted by risk level client-side, instead of a single-selection dropdown -
+   every assignment is visible at a glance. */
+.technician-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.technician-grid-feeder-heading {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 10px 0 -4px;
+}
+
+.technician-grid-feeder-heading:first-child {
+  margin-top: 0;
 }
 
 .technician-card {
@@ -1297,7 +1376,7 @@ table.compare-table th {
 
 .login-error {
   background: #fdeceb;
-  color: var(--status-critical);
+  color: var(--status-emergency);
   border: 1px solid rgba(208, 59, 59, 0.3);
   border-radius: 8px;
   padding: 9px 12px;

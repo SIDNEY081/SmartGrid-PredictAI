@@ -269,10 +269,10 @@ GLOSSARY["dga"] = GLOSSARY["dissolved gas analysis"]
 
 # Ordered recommended-action lists per risk tier, deliberately aligned with
 # models/failure_prediction.py's TIER_TO_MAINTENANCE_INTERVAL_DAYS (7/30/90/180
-# days for critical/elevated/moderate/low) so the wording matches the actual
+# days for emergency/elevated/moderate/low) so the wording matches the actual
 # next_maintenance_date the model computes.
 MAINTENANCE_ACTIONS = {
-    "critical": [
+    "emergency": [
         "Inspect within 24 hours",
         "Perform a thermal scan",
         "Sample oil for dissolved gas analysis (DGA)",

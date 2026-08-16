@@ -65,15 +65,40 @@ else:
 # decorators below) and client-side (index.html only renders the nav
 # buttons/panels a role can reach), so hiding a button is a UX nicety, not
 # the actual access boundary.
+#
+# Split by domain, not by seniority: engineer owns asset reliability
+# (transformer/feeder prediction + dispatching technicians to inspect
+# them), investigator owns revenue protection (meter theft detection +
+# dispatching technicians to investigate). Neither sees the other's
+# dashboard - a role should never be able to view a panel it has no action
+# on. Administrator sees and can act on everything, for oversight.
 PANEL_ROLES = {
     "home": set(auth.ROLES),
     "assistant": {"administrator", "engineer"},
     "transformer": {"administrator", "engineer"},
-    "meter": {"administrator", "engineer"},
+    "meter": {"administrator", "investigator"},
     "feeder": {"administrator", "engineer"},
     "reports": {"administrator", "engineer"},
+    "assignments": {"administrator", "engineer"},
+    "meter_assignments": {"administrator", "investigator"},
     "settings": {"administrator"},
 }
+
+# Roles allowed to assign/unassign technicians to transformers - engineers
+# plan field work day to day, administrators retain it for oversight/setup.
+ASSIGNMENT_ROLES = ("administrator", "engineer")
+
+# Roles allowed to assign/unassign technicians to meters flagged for
+# suspected theft - deliberately NOT engineer: revenue-protection dispatch
+# is a different discipline from maintenance planning, handled by the
+# investigator role (Revenue Protection Officer) instead.
+METER_ASSIGNMENT_ROLES = ("administrator", "investigator")
+
+# Valid statuses for a technician's theft-investigation submission - a
+# different vocabulary from transformer inspections (pending/inspected/
+# needs_followup) since the outcome of a theft investigation is "was there
+# theft or not", not "does this need another visit".
+METER_INVESTIGATION_STATUSES = ("pending", "investigating", "confirmed_theft", "false_positive")
 
 # Roles allowed to generate a new PDF report - narrower than who can view the
 # Reports panel or ask the AI Assistant questions: producing a report is a
@@ -82,7 +107,7 @@ PANEL_ROLES = {
 # interface can't be used as a side door around the same restriction.
 REPORT_GENERATION_ROLES = ("administrator", "engineer")
 
-# Status palette (good -> warning -> serious -> critical), fixed order,
+# Status palette (good -> warning -> serious -> emergency), fixed order,
 # never reused for anything else on the page.
 STATUS_COLORS = ["#0ca30c", "#fab219", "#ec835a", "#d03b3b"]
 
@@ -174,22 +199,39 @@ def landscape_chart(df, x_col, y_col, z_col, tier_col, id_col, labels, tier_orde
 
 def build_panel(
     csv_path, id_col, score_col, score_label, tier_col, flag_col, tier_order, entity_label, slug,
-    raw_path=None, landscape_cols=None, landscape_labels=None,
+    raw_path=None, landscape_cols=None, landscape_labels=None, feeder_col=None,
 ):
     df = pd.read_csv(csv_path)
     counts = df[tier_col].value_counts().reindex(tier_order, fill_value=0)
 
     top = df.sort_values(score_col, ascending=False).head(15)
     has_reasons = "top_reasons" in df.columns
-    top_rows = [
-        {
+
+    def _row(row):
+        return {
             "id": row[id_col],
             "score": row[score_col],
             "tier": row[tier_col],
             "reasons": row["top_reasons"] if has_reasons else None,
         }
-        for _, row in top.iterrows()
-    ]
+
+    top_rows = [_row(row) for _, row in top.iterrows()]
+
+    # Grouped by feeder instead of a flat ranked list - a field crew plans a
+    # route by feeder, not by an id-order that jumps across the whole
+    # service area. Only the flagged (already-actionable) subset, worst
+    # feeder first, worst transformer first within each feeder.
+    feeder_groups = None
+    if feeder_col is not None:
+        flagged_df = df[df[flag_col] == 1].sort_values(score_col, ascending=False)
+        groups = []
+        for feeder_id, group in flagged_df.groupby(feeder_col, sort=False):
+            groups.append({
+                "feeder_id": feeder_id,
+                "max_score": float(group[score_col].max()),
+                "rows": [_row(row) for _, row in group.iterrows()],
+            })
+        feeder_groups = sorted(groups, key=lambda g: g["max_score"], reverse=True)
 
     landscape_html, landscape_caption = None, None
     if raw_path is not None:
@@ -211,6 +253,7 @@ def build_panel(
         "score_label": score_label,
         "chart_html": tier_chart(counts, tier_order, entity_label),
         "top_rows": top_rows,
+        "feeder_groups": feeder_groups,
         "has_reasons": has_reasons,
         "tier_color_map": dict(zip(tier_order, STATUS_COLORS)),
         "landscape_html": landscape_html,
@@ -273,12 +316,13 @@ def index():
             score_label="Risk score",
             tier_col="risk_tier",
             flag_col="alert_flag",
-            tier_order=["low", "moderate", "elevated", "critical"],
+            tier_order=["low", "moderate", "elevated", "emergency"],
             entity_label="transformers",
             slug="transformer",
             raw_path=DATA / "transformer_data.csv",
             landscape_cols=("age_years", "temperature_rise_c"),
             landscape_labels=["Age (years)", "Temp rise (°C)", "Risk score"],
+            feeder_col="feeder_id",
         )
     if role in PANEL_ROLES["meter"]:
         meter = build_panel(
@@ -288,7 +332,7 @@ def index():
             score_label="Anomaly score",
             tier_col="priority_tier",
             flag_col="investigation_flag",
-            tier_order=["low", "moderate", "elevated", "critical"],
+            tier_order=["low", "moderate", "elevated", "emergency"],
             entity_label="meters",
             slug="meter",
             raw_path=DATA / "meter_data.csv",
@@ -303,7 +347,7 @@ def index():
             score_label="Outage risk score",
             tier_col="risk_tier",
             flag_col="alert_flag",
-            tier_order=["low", "moderate", "elevated", "critical"],
+            tier_order=["low", "moderate", "elevated", "emergency"],
             entity_label="feeders",
             slug="feeder",
             raw_path=DATA / "feeder_data.csv",
@@ -334,7 +378,7 @@ def index():
     )
 
 
-AI_SYSTEM_PROMPT = """You are PredictAI, the AI assistant embedded in SmartGrid PredictAI - a \
+AI_SYSTEM_PROMPT = """You are Sidney, the AI assistant embedded in SmartGrid PredictAI - a \
 predictive-maintenance platform for electricity utility engineers, covering the \
 transformer, meter, and feeder fleet around Tzaneen and the Mopani District. You \
 help maintenance engineers and system administrators interpret failure predictions, \
@@ -469,6 +513,16 @@ def _load_transformer_full():
     ]
     raw = pd.read_csv(DATA / "transformer_data.csv")[raw_cols]
     return scores.merge(raw, on="transformer_id")
+
+
+def _load_meter_full():
+    scores = pd.read_csv(DATA / "meter_theft_scores.csv")
+    raw_cols = [
+        "meter_id", "declared_kwh", "transformer_feed_estimate_kwh",
+        "historical_avg_kwh", "pct_drop_recent", "night_usage_ratio",
+    ]
+    raw = pd.read_csv(DATA / "meter_data.csv")[raw_cols]
+    return scores.merge(raw, on="meter_id")
 
 
 @app.route("/api/transformer/<transformer_id>")
@@ -665,13 +719,13 @@ def admin_datasets():
 
 
 @app.route("/api/admin/technicians")
-@auth.roles_required("administrator")
+@auth.roles_required(*ASSIGNMENT_ROLES)
 def admin_technicians():
     return jsonify({"technicians": auth.list_technicians()})
 
 
 @app.route("/api/admin/technicians/<int:technician_id>/assignments", methods=["GET", "POST"])
-@auth.roles_required("administrator")
+@auth.roles_required(*ASSIGNMENT_ROLES)
 def admin_technician_assignments(technician_id):
     if request.method == "POST":
         transformer_id = (request.get_json(silent=True) or {}).get("transformer_id", "").strip()
@@ -693,10 +747,52 @@ def admin_technician_assignments(technician_id):
 
 
 @app.route("/api/admin/technicians/<int:technician_id>/assignments/<transformer_id>", methods=["DELETE"])
-@auth.roles_required("administrator")
+@auth.roles_required(*ASSIGNMENT_ROLES)
 def admin_technician_unassign(technician_id, transformer_id):
     auth.unassign_transformer(technician_id, transformer_id)
     auth.log_activity(auth.current_user(), f"unassigned {transformer_id} from technician #{technician_id}")
+    return jsonify({"ok": True})
+
+
+# --------------------------------------------------------------------------
+# Investigator (Revenue Protection) APIs - assign technicians to meters
+# flagged for suspected theft. Same shape as the transformer assignment
+# APIs above, gated on METER_ASSIGNMENT_ROLES instead of ASSIGNMENT_ROLES
+# so an engineer can plan transformer maintenance but not theft dispatch.
+# --------------------------------------------------------------------------
+@app.route("/api/meter-technicians")
+@auth.roles_required(*METER_ASSIGNMENT_ROLES)
+def meter_technicians():
+    return jsonify({"technicians": auth.list_technicians()})
+
+
+@app.route("/api/meter-technicians/<int:technician_id>/assignments", methods=["GET", "POST"])
+@auth.roles_required(*METER_ASSIGNMENT_ROLES)
+def meter_technician_assignments(technician_id):
+    if request.method == "POST":
+        meter_id = (request.get_json(silent=True) or {}).get("meter_id", "").strip()
+        valid_ids = set(pd.read_csv(DATA / "meter_data.csv")["meter_id"])
+        if meter_id not in valid_ids:
+            return jsonify({"error": f"{meter_id} is not a known meter id"}), 400
+        auth.assign_meter(technician_id, meter_id)
+        auth.log_activity(auth.current_user(), f"assigned meter {meter_id} to technician #{technician_id}")
+        return jsonify({"ok": True}), 201
+
+    assigned_ids = auth.get_assigned_meter_ids(technician_id)
+    full = _load_meter_full()
+    rows = full[full["meter_id"].isin(assigned_ids)]
+    items = [
+        {"id": row["meter_id"], "anomaly_score": round(float(row["anomaly_score"]), 1), "priority_tier": row["priority_tier"]}
+        for _, row in rows.iterrows()
+    ]
+    return jsonify({"assignments": items})
+
+
+@app.route("/api/meter-technicians/<int:technician_id>/assignments/<meter_id>", methods=["DELETE"])
+@auth.roles_required(*METER_ASSIGNMENT_ROLES)
+def meter_technician_unassign(technician_id, meter_id):
+    auth.unassign_meter(technician_id, meter_id)
+    auth.log_activity(auth.current_user(), f"unassigned meter {meter_id} from technician #{technician_id}")
     return jsonify({"ok": True})
 
 
@@ -730,6 +826,7 @@ def technician_assignments():
             "predicted_failure_mode": row["predicted_failure_mode"],
             "recommendations": knowledge_base.MAINTENANCE_ACTIONS.get(tier, []),
             "cnc": row["cnc"],
+            "feeder_id": row["feeder_id"],
             "last_inspection": history[0] if history else None,
         })
     return jsonify({"transformers": items})
@@ -786,6 +883,72 @@ def technician_inspection():
 
     auth.submit_inspection(transformer_id, user["id"], status, notes, photo_filename)
     auth.log_activity(user, f"submitted inspection for {transformer_id} ({status})")
+    return jsonify({"ok": True})
+
+
+# --------------------------------------------------------------------------
+# Technician APIs - assigned meters + theft investigation submissions.
+# --------------------------------------------------------------------------
+@app.route("/api/technician/meter-assignments")
+@auth.roles_required("technician", "administrator")
+def technician_meter_assignments():
+    user = auth.current_user()
+    technician_id = request.args.get("technician_id", type=int) if user["role"] == "administrator" else user["id"]
+    if technician_id is None:
+        return jsonify({"error": "technician_id is required for administrators"}), 400
+
+    assigned_ids = auth.get_assigned_meter_ids(technician_id)
+    full = _load_meter_full()
+    rows = full[full["meter_id"].isin(assigned_ids)]
+
+    items = []
+    for _, row in rows.iterrows():
+        history = auth.get_meter_investigation_history(row["meter_id"], limit=1)
+        items.append({
+            "id": row["meter_id"],
+            "anomaly_score": round(float(row["anomaly_score"]), 1),
+            "priority_tier": row["priority_tier"],
+            "top_reasons": row["top_reasons"] if "top_reasons" in row and pd.notna(row["top_reasons"]) else None,
+            "last_investigation": history[0] if history else None,
+        })
+    return jsonify({"meters": items})
+
+
+@app.route("/api/technician/recent-meter-investigations")
+@auth.roles_required("technician", "administrator")
+def technician_recent_meter_investigations():
+    user = auth.current_user()
+    technician_id = request.args.get("technician_id", type=int) if user["role"] == "administrator" else user["id"]
+    if technician_id is None:
+        return jsonify({"error": "technician_id is required for administrators"}), 400
+
+    investigations = auth.get_recent_meter_investigations_by_technician(technician_id, days=90)
+    return jsonify({"investigations": investigations})
+
+
+@app.route("/api/technician/meter-investigation", methods=["POST"])
+@auth.roles_required("technician", "administrator")
+def technician_meter_investigation():
+    user = auth.current_user()
+    meter_id = request.form.get("meter_id", "").strip()
+    status = request.form.get("status", "").strip()
+    notes = request.form.get("notes", "").strip()
+
+    if not meter_id or status not in METER_INVESTIGATION_STATUSES:
+        return jsonify({"error": "meter_id and a valid status are required"}), 400
+
+    photo_filename = None
+    photo = request.files.get("photo")
+    if photo and photo.filename:
+        ext = photo.filename.rsplit(".", 1)[-1].lower() if "." in photo.filename else ""
+        if ext not in ALLOWED_PHOTO_EXTENSIONS:
+            return jsonify({"error": f"unsupported photo type: .{ext}"}), 400
+        stamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        photo_filename = secure_filename(f"{meter_id}_{stamp}_{photo.filename}")
+        photo.save(auth.UPLOAD_DIR / photo_filename)
+
+    auth.submit_meter_investigation(meter_id, user["id"], status, notes, photo_filename)
+    auth.log_activity(user, f"submitted theft investigation for meter {meter_id} ({status})")
     return jsonify({"ok": True})
 
 
