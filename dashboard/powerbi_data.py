@@ -17,9 +17,10 @@ Desktop usage - Get Data > More... > Other > Python script > paste:
     from powerbi_data import *
 
 Power BI then lists transformers, meters, feeders, technicians, assignments,
-inspections, activity_log as selectable tables. Requires the Python
-environment configured under Power BI's File > Options > Python scripting to
-have pandas installed (the interpreter this project already uses is fine).
+inspections, meter_assignments, meter_investigations, activity_log as
+selectable tables. Requires the Python environment configured under Power
+BI's File > Options > Python scripting to have pandas installed (the
+interpreter this project already uses is fine).
 """
 
 import sqlite3
@@ -89,6 +90,22 @@ def get_inspections():
     )
 
 
+def get_meter_assignments():
+    return _db_query(
+        "SELECT a.id, a.technician_id, u.full_name AS technician_name, "
+        "a.meter_id, a.assigned_at "
+        "FROM meter_assignments a JOIN users u ON u.id = a.technician_id"
+    )
+
+
+def get_meter_investigations():
+    return _db_query(
+        "SELECT i.id, i.meter_id, i.technician_id, u.full_name AS technician_name, "
+        "i.status, i.notes, i.photo_filename, i.created_at "
+        "FROM meter_investigations i JOIN users u ON u.id = i.technician_id"
+    )
+
+
 def get_activity_log():
     return _db_query("SELECT id, user_id, username, action, created_at FROM activity_log")
 
@@ -100,6 +117,8 @@ TABLES = {
     "technicians": get_technicians,
     "assignments": get_assignments,
     "inspections": get_inspections,
+    "meter_assignments": get_meter_assignments,
+    "meter_investigations": get_meter_investigations,
     "activity_log": get_activity_log,
 }
 
@@ -111,6 +130,8 @@ feeders = get_feeders()
 technicians = get_technicians()
 assignments = get_assignments()
 inspections = get_inspections()
+meter_assignments = get_meter_assignments()
+meter_investigations = get_meter_investigations()
 activity_log = get_activity_log()
 
 if __name__ == "__main__":
@@ -121,6 +142,8 @@ if __name__ == "__main__":
         ("technicians", technicians),
         ("assignments", assignments),
         ("inspections", inspections),
+        ("meter_assignments", meter_assignments),
+        ("meter_investigations", meter_investigations),
         ("activity_log", activity_log),
     ]:
         print(f"{name}: {df.shape}")

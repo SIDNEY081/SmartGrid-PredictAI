@@ -247,6 +247,23 @@ severity instead of alphabetically. `transformer_risk_scores.csv` and
 `feeder_outage_scores.csv` share a `feeder_id` column if you want to relate
 them in the data model.
 
+For richer tables (assets already joined with their risk scores, plus who's
+assigned to what and their inspection/investigation history from `app.db`),
+`dashboard/powerbi_data.py` exposes `transformers`, `meters`, `feeders`,
+`technicians`, `assignments`, `inspections`, `meter_assignments`,
+`meter_investigations`, and `activity_log` two ways:
+
+- **Power BI Desktop** - Get Data -> More -> Other -> Python script, then
+  `sys.path.append(".../dashboard")` and `from powerbi_data import *`. Needs
+  a Python environment with pandas configured under Power BI's File ->
+  Options -> Python scripting.
+- **Power BI Service** (cloud, supports scheduled refresh) - `GET
+  /api/powerbi/<table_name>` on the running Flask app, authenticated via an
+  `X-API-Key` header or `?api_key=` query param. The key is generated once
+  and persisted to `data/powerbi_api_key.txt` (also printed to the console
+  on startup) - not a gitignored secret worth protecting beyond that, just a
+  local prototype credential.
+
 ## Explainable AI
 
 All three models print held-out accuracy, precision/recall/F1
