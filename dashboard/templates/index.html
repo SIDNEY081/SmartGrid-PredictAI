@@ -17,6 +17,14 @@
     {%- endif -%}
   {%- endmacro %}
 
+  {% macro stat_tile(icon, value, label, severity="") -%}
+  <div class="stat-tile">
+    <span class="stat-tile-icon">{{ icon }}</span>
+    <div class="stat-value{% if severity %} stat-value-{{ severity }}{% endif %}">{{ value }}</div>
+    <div class="stat-label">{{ label }}</div>
+  </div>
+  {%- endmacro %}
+
   <div class="app-shell">
     <aside class="sidebar">
       <div class="sidebar-brand">
@@ -68,9 +76,9 @@
         <h2>🏠&nbsp;Administrator Dashboard</h2>
         <p class="assistant-sub">System-wide overview - user accounts, dataset freshness, and recent activity.</p>
         <div class="stat-row">
-          <div class="stat-tile"><div class="stat-value">{{ home.user_count }}</div><div class="stat-label">User accounts</div></div>
-          <div class="stat-tile"><div class="stat-value">{{ home.dataset_stats|length }}</div><div class="stat-label">Tracked datasets</div></div>
-          <div class="stat-tile"><div class="stat-value">{{ home.activity|length }}</div><div class="stat-label">Recent activity events</div></div>
+          {{ stat_tile("👤", home.user_count, "User accounts") }}
+          {{ stat_tile("🗂️", home.dataset_stats|length, "Tracked datasets") }}
+          {{ stat_tile("📝", home.activity|length, "Recent activity events") }}
         </div>
         <p class="assistant-sub">Manage users, review datasets, and view the full activity log under <strong>⚙️ Settings</strong>.</p>
 
@@ -130,32 +138,57 @@
         {% if transformer %}
         <h3 class="dash-section-title">{{ entity_icon("transformer") }}Transformers</h3>
         <div class="stat-row">
-          <div class="stat-tile"><div class="stat-value">{{ transformer.total }}</div><div class="stat-label">Total transformers</div></div>
-          <div class="stat-tile"><div class="stat-value">{{ transformer.flagged }}</div><div class="stat-label">Flagged for action</div></div>
-          <div class="stat-tile"><div class="stat-value">{{ transformer.top_tier_count }}</div><div class="stat-label">{{ transformer.top_tier_name }} tier</div></div>
-          <div class="stat-tile"><div class="stat-value">{{ transformer.avg_score }}</div><div class="stat-label">Average risk score</div></div>
+          {{ stat_tile("📈", transformer.total, "Total transformers") }}
+          {{ stat_tile("⚠️", transformer.flagged, "Flagged for action", "warning") }}
+          {{ stat_tile("🔥", transformer.top_tier_count, transformer.top_tier_name ~ " tier", "emergency") }}
+          {{ stat_tile("📊", transformer.avg_score, "Average risk score") }}
         </div>
         {% endif %}
 
         {% if meter %}
         <h3 class="dash-section-title">{{ entity_icon("meter") }}Meters</h3>
         <div class="stat-row">
-          <div class="stat-tile"><div class="stat-value">{{ meter.total }}</div><div class="stat-label">Total meters</div></div>
-          <div class="stat-tile"><div class="stat-value">{{ meter.flagged }}</div><div class="stat-label">Flagged for action</div></div>
-          <div class="stat-tile"><div class="stat-value">{{ meter.top_tier_count }}</div><div class="stat-label">{{ meter.top_tier_name }} tier</div></div>
-          <div class="stat-tile"><div class="stat-value">{{ meter.avg_score }}</div><div class="stat-label">Average anomaly score</div></div>
+          {{ stat_tile("🔌", meter.total, "Total meters") }}
+          {{ stat_tile("⚠️", meter.flagged, "Flagged for action", "warning") }}
+          {{ stat_tile("🔥", meter.top_tier_count, meter.top_tier_name ~ " tier", "emergency") }}
+          {{ stat_tile("📊", meter.avg_score, "Average anomaly score") }}
         </div>
         {% endif %}
 
         {% if feeder %}
         <h3 class="dash-section-title">{{ entity_icon("feeder") }}Feeders</h3>
         <div class="stat-row">
-          <div class="stat-tile"><div class="stat-value">{{ feeder.total }}</div><div class="stat-label">Total feeders</div></div>
-          <div class="stat-tile"><div class="stat-value">{{ feeder.flagged }}</div><div class="stat-label">Flagged for action</div></div>
-          <div class="stat-tile"><div class="stat-value">{{ feeder.top_tier_count }}</div><div class="stat-label">{{ feeder.top_tier_name }} tier</div></div>
-          <div class="stat-tile"><div class="stat-value">{{ feeder.avg_score }}</div><div class="stat-label">Average outage risk score</div></div>
+          {{ stat_tile("⚡", feeder.total, "Total feeders") }}
+          {{ stat_tile("⚠️", feeder.flagged, "Flagged for action", "warning") }}
+          {{ stat_tile("🔥", feeder.top_tier_count, feeder.top_tier_name ~ " tier", "emergency") }}
+          {{ stat_tile("📊", feeder.avg_score, "Average outage risk score") }}
         </div>
         {% endif %}
+        {% endif %}
+
+        {% if maintenance_queue %}
+        <div class="queue-wrap">
+          <h3 class="dash-section-title">🗓️&nbsp;Maintenance Queue</h3>
+          <ul class="queue-list">
+            {% for item in maintenance_queue %}
+            <li class="queue-item">
+              <span class="queue-dot queue-dot-{{ item.severity }}"></span>
+              {{ item.text }}
+            </li>
+            {% endfor %}
+          </ul>
+          <div class="queue-actions">
+            {% if "assignments" in allowed_panels %}
+            <button type="button" class="queue-action-btn" data-goto-panel="assignments">👷&nbsp;Assign Technicians</button>
+            {% endif %}
+            {% if "meter_assignments" in allowed_panels %}
+            <button type="button" class="queue-action-btn" data-goto-panel="meter_assignments">🔍&nbsp;Assign Investigators</button>
+            {% endif %}
+            {% if "reports" in allowed_panels %}
+            <button type="button" class="queue-action-btn" data-goto-panel="reports">📄&nbsp;Reports</button>
+            {% endif %}
+          </div>
+        </div>
         {% endif %}
 
         {% if "assistant" in allowed_panels %}
@@ -206,22 +239,10 @@
         <h2>{{ entity_icon(panel.slug) }}{{ panel.entity_label | capitalize }} — {{ panel.score_label }}</h2>
 
         <div class="stat-row">
-          <div class="stat-tile">
-            <div class="stat-value">{{ panel.total }}</div>
-            <div class="stat-label">Total {{ panel.entity_label }}</div>
-          </div>
-          <div class="stat-tile">
-            <div class="stat-value">{{ panel.flagged }}</div>
-            <div class="stat-label">Flagged for action</div>
-          </div>
-          <div class="stat-tile">
-            <div class="stat-value">{{ panel.top_tier_count }}</div>
-            <div class="stat-label">{{ panel.top_tier_name }} tier</div>
-          </div>
-          <div class="stat-tile">
-            <div class="stat-value">{{ panel.avg_score }}</div>
-            <div class="stat-label">Average {{ panel.score_label | lower }}</div>
-          </div>
+          {{ stat_tile({"transformer": "📈", "meter": "🔌", "feeder": "⚡"}[panel.slug], panel.total, "Total " ~ panel.entity_label) }}
+          {{ stat_tile("⚠️", panel.flagged, "Flagged for action", "warning") }}
+          {{ stat_tile("🔥", panel.top_tier_count, panel.top_tier_name ~ " tier", "emergency") }}
+          {{ stat_tile("📊", panel.avg_score, "Average " ~ (panel.score_label | lower)) }}
         </div>
 
         <div class="content-grid">
@@ -291,6 +312,25 @@
             {% endif %}
           </div>
         </div>
+
+        {% if panel.map_html %}
+        <div class="landscape-wrap">
+          <h3>Outage risk map</h3>
+          <p class="landscape-caption">Real GPS coordinates from the {{ panel.entity_label }} fleet around Tzaneen and the Mopani District, colored by risk tier.</p>
+          <div class="landscape-guide">
+            <div class="landscape-legend">
+              {% for tier in panel.tier_order %}
+              <span class="landscape-legend-item">
+                <span class="landscape-legend-dot" style="background:{{ panel.tier_color_map[tier] }}"></span>
+                {{ tier | capitalize }}
+              </span>
+              {% endfor %}
+            </div>
+            <p class="landscape-controls">🖱️ Drag to pan · scroll to zoom · hover a marker for its id</p>
+          </div>
+          {{ panel.map_html | safe }}
+        </div>
+        {% endif %}
 
         {% if panel.landscape_html %}
         <div class="landscape-wrap">
@@ -465,6 +505,16 @@
       });
 
       showPanel("home");
+
+      // Maintenance Queue action bar - real shortcuts to the same nav tabs
+      // above, not a separate flow, so clicking "Assign Technicians" here
+      // does exactly what clicking it in the sidebar does.
+      document.querySelectorAll(".queue-action-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var target = document.querySelector('.tab-btn[data-panel="' + btn.dataset.gotoPanel + '"]');
+          if (target) target.click();
+        });
+      });
     })();
 
     // ---- Reports list (admin / engineer) ----
@@ -587,7 +637,7 @@
       function buildCard(item) {
         var card = document.createElement("div");
         card.className = "technician-card technician-card-block";
-        var color = TIER_COLORS[item.risk_tier] || "#52514e";
+        var color = TIER_COLORS[item.risk_tier] || "#4a5f85";
         var lastLine = item.last_inspection
           ? "Last inspection: " + STATUS_LABELS[item.last_inspection.status] + " " + agoLabel(item.last_inspection.created_at) + " by " + item.last_inspection.technician_name
           : "No inspection submitted yet.";
@@ -654,7 +704,7 @@
         recentContainer.innerHTML = items.map(function (item) {
           return '<div class="technician-card technician-card-block">' +
             '<div class="technician-card-head"><strong>' + item.transformer_id + "</strong> - " + (item.cnc || "unknown") +
-              ' <span class="assistant-tag" style="background:#52514e">' + STATUS_LABELS[item.status] + "</span></div>" +
+              ' <span class="assistant-tag" style="background:#4a5f85">' + STATUS_LABELS[item.status] + "</span></div>" +
             '<div class="assistant-meta">' + agoLabel(item.created_at) + " (" + item.created_at.slice(0, 10) + ") · " + item.technician_name + "</div>" +
             (item.notes ? '<div class="assistant-meta">' + item.notes + "</div>" : "") +
           "</div>";
@@ -724,7 +774,7 @@
       function buildCard(item) {
         var card = document.createElement("div");
         card.className = "technician-card technician-card-block";
-        var color = TIER_COLORS[item.priority_tier] || "#52514e";
+        var color = TIER_COLORS[item.priority_tier] || "#4a5f85";
         var lastLine = item.last_investigation
           ? "Last investigation: " + STATUS_LABELS[item.last_investigation.status] + " " + agoLabel(item.last_investigation.created_at) + " by " + item.last_investigation.technician_name
           : "No investigation submitted yet.";
@@ -791,7 +841,7 @@
         recentContainer.innerHTML = items.map(function (item) {
           return '<div class="technician-card technician-card-block">' +
             '<div class="technician-card-head"><strong>' + item.meter_id + "</strong>" +
-              ' <span class="assistant-tag" style="background:#52514e">' + STATUS_LABELS[item.status] + "</span></div>" +
+              ' <span class="assistant-tag" style="background:#4a5f85">' + STATUS_LABELS[item.status] + "</span></div>" +
             '<div class="assistant-meta">' + agoLabel(item.created_at) + " (" + item.created_at.slice(0, 10) + ") · " + item.technician_name + "</div>" +
             (item.notes ? '<div class="assistant-meta">' + item.notes + "</div>" : "") +
           "</div>";
@@ -898,7 +948,7 @@
         items.forEach(function (item) {
           var row = document.createElement("div");
           row.className = "technician-card";
-          var color = TIER_COLORS[item.risk_tier] || "#52514e";
+          var color = TIER_COLORS[item.risk_tier] || "#4a5f85";
           row.innerHTML =
             "<div><strong>" + item.id + "</strong> - " + item.cnc +
             ' <span class="assistant-tag" style="background:' + color + '">' + item.risk_tier.toUpperCase() + "</span></div>" +
@@ -983,7 +1033,7 @@
         items.forEach(function (item) {
           var row = document.createElement("div");
           row.className = "technician-card";
-          var color = TIER_COLORS[item.priority_tier] || "#52514e";
+          var color = TIER_COLORS[item.priority_tier] || "#4a5f85";
           row.innerHTML =
             "<div><strong>" + item.id + "</strong>" +
             ' <span class="assistant-tag" style="background:' + color + '">' + item.priority_tier.toUpperCase() + "</span></div>" +
@@ -1091,7 +1141,7 @@
       // trust level as the Jinja-rendered score table above.
       function renderCard(data) {
         currentFocusId = data.id;
-        var color = TIER_COLORS[data.risk_tier] || "#52514e";
+        var color = TIER_COLORS[data.risk_tier] || "#4a5f85";
         var checklist = data.recommendations.map(function (a) { return "<li>" + a + "</li>"; }).join("");
         if (!checklist) checklist = "<li>No recommendation available.</li>";
 

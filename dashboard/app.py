@@ -108,15 +108,23 @@ METER_INVESTIGATION_STATUSES = ("pending", "investigating", "confirmed_theft", "
 REPORT_GENERATION_ROLES = ("administrator", "engineer")
 
 # Status palette (good -> warning -> serious -> emergency), fixed order,
-# never reused for anything else on the page.
-STATUS_COLORS = ["#0ca30c", "#fab219", "#ec835a", "#d03b3b"]
+# never reused for anything else on the page. Matches style.css's
+# --status-good/warning/serious/emergency tokens.
+STATUS_COLORS = ["#22c55e", "#f2b53d", "#f2884b", "#ef4444"]
 
 # Per-entity accent colors (blue/orange/aqua) live in static/style.css,
 # keyed off each element's data-panel attribute rather than passed through
 # here - avoids depending on CSS custom-property resolution for something
 # only ever used for nav/header identity, never tier severity.
 
-CHART_FONT = dict(family='system-ui, -apple-system, "Segoe UI", sans-serif', color="#0b0b0b")
+# Dark navy chart theme, matching style.css's --surface-1/--text-primary/
+# --gridline/--border/--page-plane tokens. Plotly can't read CSS custom
+# properties, so these are kept in sync by hand.
+CHART_BG = "#132747"
+CHART_HOVER_BG = "#0a1730"
+CHART_GRID = "rgba(255, 255, 255, 0.10)"
+CHART_AXIS_LINE = "rgba(255, 255, 255, 0.28)"
+CHART_FONT = dict(family='system-ui, -apple-system, "Segoe UI", sans-serif', color="#eef3fc")
 
 
 def tier_chart(counts, tier_order, entity_label):
@@ -136,13 +144,13 @@ def tier_chart(counts, tier_order, entity_label):
         )
     )
     fig.update_layout(
-        paper_bgcolor="#fcfcfb",
-        plot_bgcolor="#fcfcfb",
+        paper_bgcolor=CHART_BG,
+        plot_bgcolor=CHART_BG,
         font=CHART_FONT,
-        hoverlabel=dict(bgcolor="#232220", font_color="#fff", bordercolor="#232220"),
-        xaxis=dict(showgrid=False, linecolor="#c3c2b7"),
+        hoverlabel=dict(bgcolor=CHART_HOVER_BG, font_color="#eef3fc", bordercolor=CHART_AXIS_LINE),
+        xaxis=dict(showgrid=False, linecolor=CHART_AXIS_LINE),
         yaxis=dict(
-            showgrid=True, gridcolor="#e1e0d9", zeroline=False, title=None,
+            showgrid=True, gridcolor=CHART_GRID, zeroline=False, title=None,
             range=[0, max(counts.values) * 1.18],  # headroom for the outside label
         ),
         bargap=0.35,
@@ -186,13 +194,13 @@ def landscape_chart(df, x_col, y_col, z_col, tier_col, id_col, labels, tier_orde
     fig.update_layout(
         height=420,
         margin=dict(l=0, r=0, t=10, b=0),
-        paper_bgcolor="#fcfcfb",
+        paper_bgcolor=CHART_BG,
         font=CHART_FONT,
         legend=dict(orientation="h", yanchor="bottom", y=1, x=0),
         scene=dict(
-            xaxis=dict(title=labels[0], backgroundcolor="#fcfcfb", gridcolor="#e1e0d9"),
-            yaxis=dict(title=labels[1], backgroundcolor="#fcfcfb", gridcolor="#e1e0d9"),
-            zaxis=dict(title=labels[2], backgroundcolor="#fcfcfb", gridcolor="#e1e0d9"),
+            xaxis=dict(title=labels[0], backgroundcolor=CHART_BG, gridcolor=CHART_GRID),
+            yaxis=dict(title=labels[1], backgroundcolor=CHART_BG, gridcolor=CHART_GRID),
+            zaxis=dict(title=labels[2], backgroundcolor=CHART_BG, gridcolor=CHART_GRID),
             camera=dict(eye=dict(x=1.4, y=1.4, z=0.9)),
         ),
     )
@@ -204,9 +212,45 @@ def landscape_chart(df, x_col, y_col, z_col, tier_col, id_col, labels, tier_orde
     return html, caption
 
 
+def risk_map(df, lat_col, lon_col, tier_col, id_col, tier_order, entity_label):
+    """Real geographic map of the scored fleet - actual gps_lat/gps_lon from
+    the asset data, colored by the same severity ramp as the tier bar chart.
+    Uses Carto's dark-matter basemap tiles, which (unlike Mapbox's own
+    styles) render without an API token - appropriate for a prototype with
+    no Mapbox account, and it matches the dark theme for free."""
+    fig = go.Figure()
+    for tier, color in zip(tier_order, STATUS_COLORS):
+        sub = df[df[tier_col] == tier]
+        if sub.empty:
+            continue
+        fig.add_trace(
+            go.Scattermapbox(
+                lat=sub[lat_col], lon=sub[lon_col],
+                mode="markers",
+                name=tier.title(),
+                marker=dict(size=9, color=color, opacity=0.85),
+                customdata=sub[[id_col]],
+                hovertemplate=f"<b>%{{customdata[0]}}</b><extra></extra>",
+            )
+        )
+    fig.update_layout(
+        height=420,
+        margin=dict(l=0, r=0, t=0, b=0),
+        paper_bgcolor=CHART_BG,
+        font=CHART_FONT,
+        legend=dict(orientation="h", yanchor="bottom", y=1.01, x=0, bgcolor="rgba(0,0,0,0)"),
+        mapbox=dict(
+            style="carto-darkmatter",
+            center=dict(lat=float(df[lat_col].mean()), lon=float(df[lon_col].mean())),
+            zoom=9,
+        ),
+    )
+    return fig.to_html(full_html=False, include_plotlyjs=False, config={"displayModeBar": False})
+
+
 def build_panel(
     csv_path, id_col, score_col, score_label, tier_col, flag_col, tier_order, entity_label, slug,
-    raw_path=None, landscape_cols=None, landscape_labels=None, feeder_col=None,
+    raw_path=None, landscape_cols=None, landscape_labels=None, feeder_col=None, map_cols=None,
 ):
     df = pd.read_csv(csv_path)
     counts = df[tier_col].value_counts().reindex(tier_order, fill_value=0)
@@ -241,6 +285,7 @@ def build_panel(
         feeder_groups = sorted(groups, key=lambda g: g["max_score"], reverse=True)
 
     landscape_html, landscape_caption = None, None
+    map_html = None
     if raw_path is not None:
         raw = pd.read_csv(raw_path)
         x_col, y_col = landscape_cols
@@ -248,6 +293,9 @@ def build_panel(
         landscape_html, landscape_caption = landscape_chart(
             merged, x_col, y_col, score_col, tier_col, id_col, landscape_labels, tier_order
         )
+        if map_cols is not None:
+            lat_col, lon_col = map_cols
+            map_html = risk_map(merged, lat_col, lon_col, tier_col, id_col, tier_order, entity_label)
 
     return {
         "slug": slug,
@@ -266,6 +314,7 @@ def build_panel(
         "landscape_html": landscape_html,
         "landscape_caption": landscape_caption,
         "landscape_labels": landscape_labels,
+        "map_html": map_html,
         "tier_order": tier_order,
     }
 
@@ -330,6 +379,7 @@ def index():
             landscape_cols=("age_years", "temperature_rise_c"),
             landscape_labels=["Age (years)", "Temp rise (°C)", "Risk score"],
             feeder_col="feeder_id",
+            map_cols=("gps_lat", "gps_lon"),
         )
     if role in PANEL_ROLES["meter"]:
         meter = build_panel(
@@ -375,12 +425,45 @@ def index():
     else:
         home = {"kind": "fleet"}
 
+    # Real backlog counts, not a decorative widget - only computed for the
+    # domain the signed-in role actually acts on (transformer dispatch for
+    # engineers, meter dispatch for investigators). Formatted here rather
+    # than in the template so plural/severity logic lives in one place.
+    maintenance_queue = None
+    if home["kind"] == "fleet":
+        maintenance_queue = []
+        if transformer:
+            pending = auth.count_pending_transformer_inspections()
+            maintenance_queue.append({
+                "text": f"{pending} transformer inspection{'s' if pending != 1 else ''} pending",
+                "severity": "warning" if pending else "good",
+            })
+            gap = auth.count_unassigned_emergency_transformers()
+            if gap:
+                maintenance_queue.append({
+                    "text": f"{gap} emergency-tier transformer{'s' if gap != 1 else ''} not yet assigned to a technician",
+                    "severity": "emergency",
+                })
+        if meter:
+            pending = auth.count_pending_meter_investigations()
+            maintenance_queue.append({
+                "text": f"{pending} meter investigation{'s' if pending != 1 else ''} pending",
+                "severity": "warning" if pending else "good",
+            })
+            gap = auth.count_unassigned_emergency_meters()
+            if gap:
+                maintenance_queue.append({
+                    "text": f"{gap} emergency-tier meter{'s' if gap != 1 else ''} not yet assigned for investigation",
+                    "severity": "emergency",
+                })
+
     return render_template(
         "index.html",
         user=user,
         role_label=auth.ROLE_LABELS[role],
         allowed_panels=allowed_panels,
         home=home,
+        maintenance_queue=maintenance_queue,
         transformer=transformer, meter=meter, feeder=feeder,
     )
 
@@ -583,16 +666,16 @@ def transformer_history(transformer_id):
             go.Scatter(
                 x=hist["month_offset"].tolist(), y=hist[metric].tolist(), mode="lines+markers",
                 line=dict(width=2, color=color),
-                marker=dict(size=6, color=color, line=dict(width=2, color="#fcfcfb")),
+                marker=dict(size=6, color=color, line=dict(width=2, color=CHART_BG)),
                 hovertemplate=f"month %{{x}}<br>{label}: %{{y:.2f}}<extra></extra>",
             )
         )
         fig.update_layout(
             height=180, margin=dict(l=10, r=10, t=24, b=24),
-            paper_bgcolor="#fcfcfb", plot_bgcolor="#fcfcfb", font=CHART_FONT, showlegend=False,
+            paper_bgcolor=CHART_BG, plot_bgcolor=CHART_BG, font=CHART_FONT, showlegend=False,
             title=dict(text=label, font=dict(size=12)),
             xaxis=dict(showgrid=False, title="Month"),
-            yaxis=dict(showgrid=True, gridcolor="#e1e0d9", zeroline=False),
+            yaxis=dict(showgrid=True, gridcolor=CHART_GRID, zeroline=False),
         )
         charts.append({"label": label, "figure": json.loads(fig.to_json())})
 
@@ -634,9 +717,9 @@ def transformer_compare(transformer_id, other_id):
     ])
     fig.update_layout(
         barmode="group", height=260, margin=dict(l=10, r=10, t=30, b=30),
-        paper_bgcolor="#fcfcfb", plot_bgcolor="#fcfcfb", font=CHART_FONT,
+        paper_bgcolor=CHART_BG, plot_bgcolor=CHART_BG, font=CHART_FONT,
         legend=dict(orientation="h", yanchor="bottom", y=1.1, x=0),
-        yaxis=dict(showgrid=True, gridcolor="#e1e0d9", range=[0, 100]),
+        yaxis=dict(showgrid=True, gridcolor=CHART_GRID, range=[0, 100]),
     )
 
     return jsonify({"a": transformer_id, "b": other_id, "rows": rows, "figure": json.loads(fig.to_json())})

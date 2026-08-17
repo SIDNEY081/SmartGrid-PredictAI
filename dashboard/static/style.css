@@ -1,31 +1,51 @@
 :root {
-  --page-plane: #f9f9f7;
-  --surface-1: #fcfcfb;
-  --text-primary: #0b0b0b;
-  --text-secondary: #52514e;
-  --text-muted: #898781;
-  --gridline: #e1e0d9;
-  --border: rgba(11, 11, 11, 0.10);
+  /* Dark navy control-room palette - page-plane is the darkest (recessed
+     surfaces: hovers, nested wells), surface-1 a step lighter (cards/panels
+     themselves), giving the layered-panel depth the mockup has. */
+  --page-plane: #0a1730;
+  --surface-1: #132747;
+  --text-primary: #eef3fc;
+  --text-secondary: #9fb3d6;
+  --text-muted: #6d80a3;
+  --gridline: rgba(255, 255, 255, 0.09);
+  --border: rgba(255, 255, 255, 0.12);
 
-  --status-good: #0ca30c;
-  --status-warning: #fab219;
-  --status-serious: #ec835a;
-  --status-emergency: #d03b3b;
+  --status-good: #22c55e;
+  --status-warning: #f2b53d;
+  --status-serious: #f2884b;
+  --status-emergency: #ef4444;
 
-  --brand-1: #2a78d6;
-  --brand-2: #1baf7a;
+  --brand-1: #3b82f6;
+  --brand-2: #22c55e;
 }
 
 * { box-sizing: border-box; }
+
+/* Tells the browser this page's native form controls (dropdown-list
+   backgrounds, checkboxes, scrollbars, date pickers) should render in their
+   dark variant where the browser supports it, instead of defaulting to a
+   white dropdown list popping out of an otherwise dark <select>. */
+:root { color-scheme: dark; }
+
+input, select, textarea {
+  color: var(--text-primary);
+}
+
+::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
 
 body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  /* Eskom-blue diagonal wash. Every panel/tile/table/chart below sets its
-     own opaque surface color (--surface-1), so this only fills the space
-     around them - it never shows through a chart. */
-  background: linear-gradient(135deg, #9dc4f2 0%, #dceafb 20%, #f9f9f7 46%, #f9f9f7 54%, #dceafb 80%, #9dc4f2 100%) fixed;
+  /* Deep navy wash with a soft blue glow near the top - every panel/tile/
+     table/chart below sets its own opaque surface color (--surface-1), so
+     this only fills the space around them - it never shows through a chart. */
+  background:
+    radial-gradient(1400px 900px at 50% -10%, rgba(59, 130, 246, 0.16), transparent 60%),
+    linear-gradient(165deg, #060c1c 0%, #0a1730 45%, #0a1730 55%, #060c1c 100%) fixed;
   color: var(--text-primary);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
@@ -42,7 +62,7 @@ body {
   display: flex;
   flex-direction: column;
   padding: 20px 16px;
-  background: rgba(252, 252, 251, 0.88);
+  background: rgba(10, 23, 48, 0.82);
   border-right: 1px solid var(--border);
   backdrop-filter: blur(6px);
   /* Pinned to the viewport and scrolls independently of main - without
@@ -126,7 +146,7 @@ body {
   background: var(--surface-1);
   color: var(--brand-1);
   border-left-color: var(--brand-1);
-  box-shadow: 0 1px 2px rgba(11, 11, 11, 0.04);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .sidebar-user {
@@ -160,7 +180,7 @@ body {
 }
 
 .logout-btn:hover {
-  background: #fdeceb;
+  background: rgba(239, 68, 68, 0.12);
   color: var(--status-emergency);
   border-color: var(--status-emergency);
 }
@@ -190,7 +210,7 @@ section.panel {
   border-top: 3px solid var(--border);
   border-radius: 10px;
   padding: 20px 24px 24px;
-  box-shadow: 0 1px 2px rgba(11, 11, 11, 0.04), 0 10px 24px rgba(11, 11, 11, 0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 14px 32px rgba(0, 0, 0, 0.4);
 }
 
 section.panel[data-panel="home"] { border-top-color: var(--brand-1); }
@@ -236,6 +256,68 @@ section.panel[data-panel="feeder"] h2 .entity-icon { color: #1baf7a; }
   border-top: 1px solid var(--gridline);
 }
 
+/* Maintenance Queue - real backlog counts (see app.py's maintenance_queue
+   list) plus quick-nav shortcuts to the panels that actually act on them. */
+.queue-wrap {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--gridline);
+}
+
+.queue-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.queue-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-1);
+}
+
+.queue-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.queue-dot-good { background: var(--status-good); }
+.queue-dot-warning { background: var(--status-warning); }
+.queue-dot-emergency { background: var(--status-emergency); }
+
+.queue-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.queue-action-btn {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--brand-1);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.queue-action-btn:hover {
+  filter: brightness(1.12);
+}
+
 .stat-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -251,7 +333,7 @@ section.panel[data-panel="feeder"] h2 .entity-icon { color: #1baf7a; }
 }
 
 .stat-tile:hover {
-  box-shadow: 0 6px 16px rgba(11, 11, 11, 0.08);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(59, 130, 246, 0.12);
   transform: translateY(-1px);
 }
 
@@ -259,12 +341,26 @@ section.panel[data-panel="transformer"] .stat-tile:hover { border-color: #2a78d6
 section.panel[data-panel="meter"] .stat-tile:hover { border-color: #eb6834; }
 section.panel[data-panel="feeder"] .stat-tile:hover { border-color: #1baf7a; }
 
+.stat-tile-icon {
+  display: block;
+  font-size: 19px;
+  line-height: 1;
+  margin-bottom: 7px;
+  opacity: 0.9;
+}
+
 .stat-tile .stat-value {
   font-size: 25px;
   font-weight: 800;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
 }
+
+/* Severity-colored tiles (Flagged / Emergency-tier counts) so the numbers
+   that need attention pop out of the row instead of reading the same as a
+   plain total. */
+.stat-value-warning { color: var(--status-warning); }
+.stat-value-emergency { color: var(--status-emergency); }
 
 .stat-tile .stat-label {
   font-size: 12px;
@@ -472,7 +568,7 @@ footer {
 
 .chat-msg-user {
   align-self: flex-end;
-  background: var(--text-primary);
+  background: var(--brand-1);
   color: #ffffff;
 }
 
@@ -496,9 +592,9 @@ footer {
 }
 
 .chat-chip:hover {
-  background: var(--text-primary);
+  background: var(--brand-1);
   color: #ffffff;
-  border-color: var(--text-primary);
+  border-color: var(--brand-1);
 }
 
 #chat-form {
@@ -515,10 +611,12 @@ footer {
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-primary);
 }
 
 #chat-input:focus {
-  outline: 2px solid var(--text-primary);
+  outline: 2px solid var(--brand-1);
   outline-offset: 1px;
 }
 
@@ -527,7 +625,7 @@ footer {
   font-size: 13px;
   font-weight: 600;
   color: #ffffff;
-  background: var(--text-primary);
+  background: var(--brand-1);
   border: none;
   border-radius: 6px;
   padding: 8px 12px;
@@ -732,6 +830,7 @@ footer {
   padding: 6px 8px;
   border: 1px solid var(--border);
   border-radius: 6px;
+  background: var(--surface-1);
   margin-bottom: 10px;
 }
 
@@ -1389,9 +1488,9 @@ table.compare-table th {
 }
 
 .login-error {
-  background: #fdeceb;
+  background: rgba(239, 68, 68, 0.12);
   color: var(--status-emergency);
-  border: 1px solid rgba(208, 59, 59, 0.3);
+  border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: 8px;
   padding: 9px 12px;
   font-size: 13px;

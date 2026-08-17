@@ -435,6 +435,69 @@ def get_recent_meter_investigations_by_technician(technician_id, days=90, limit=
 
 
 # --------------------------------------------------------------------------
+# Maintenance queue - real backlog counts for the Fleet Dashboard's queue
+# widget, not invented numbers. "Pending" here means the assignment's most
+# recent submission (if any) hasn't reached a resolved end state yet -
+# inspected for transformers, confirmed_theft/false_positive for meters.
+# "Unassigned emergency" means the model already flagged it as the worst
+# tier and nobody has been dispatched to it at all - the actionable gap a
+# planner most needs to see.
+# --------------------------------------------------------------------------
+def count_pending_transformer_inspections():
+    row = get_db().execute(
+        """
+        SELECT COUNT(*) FROM assignments a
+        WHERE COALESCE(
+            (SELECT i.status FROM inspections i
+             WHERE i.transformer_id = a.transformer_id AND i.technician_id = a.technician_id
+             ORDER BY i.created_at DESC LIMIT 1),
+            'pending'
+        ) != 'inspected'
+        """
+    ).fetchone()
+    return row[0]
+
+
+def count_pending_meter_investigations():
+    row = get_db().execute(
+        """
+        SELECT COUNT(*) FROM meter_assignments a
+        WHERE COALESCE(
+            (SELECT i.status FROM meter_investigations i
+             WHERE i.meter_id = a.meter_id AND i.technician_id = a.technician_id
+             ORDER BY i.created_at DESC LIMIT 1),
+            'pending'
+        ) IN ('pending', 'investigating')
+        """
+    ).fetchone()
+    return row[0]
+
+
+def count_unassigned_emergency_transformers():
+    import pandas as pd
+
+    path = ROOT / "data" / "transformer_risk_scores.csv"
+    if not path.exists():
+        return 0
+    scores = pd.read_csv(path)
+    emergency_ids = set(scores.loc[scores["risk_tier"] == "emergency", "transformer_id"])
+    assigned_ids = {r["transformer_id"] for r in get_db().execute("SELECT DISTINCT transformer_id FROM assignments")}
+    return len(emergency_ids - assigned_ids)
+
+
+def count_unassigned_emergency_meters():
+    import pandas as pd
+
+    path = ROOT / "data" / "meter_theft_scores.csv"
+    if not path.exists():
+        return 0
+    scores = pd.read_csv(path)
+    emergency_ids = set(scores.loc[scores["priority_tier"] == "emergency", "meter_id"])
+    assigned_ids = {r["meter_id"] for r in get_db().execute("SELECT DISTINCT meter_id FROM meter_assignments")}
+    return len(emergency_ids - assigned_ids)
+
+
+# --------------------------------------------------------------------------
 # Activity log
 # --------------------------------------------------------------------------
 def log_activity(user, action):
