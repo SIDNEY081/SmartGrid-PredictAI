@@ -29,6 +29,7 @@ import streamlit as st
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "models"))
 
+import auth  # noqa: E402  (auth.get_db() falls back to a plain connection outside a Flask app context)
 import chatbot  # noqa: E402  (dashboard/chatbot.py, same directory as this file)
 import explain  # noqa: E402
 import failure_prediction as fp  # noqa: E402
@@ -127,8 +128,8 @@ def load_theft_model():
     if model_path.exists():
         return joblib.load(model_path)
     df = td.load_data(str(ROOT / "data" / "meter_data.csv"))
-    model, scaler, feature_cols, _, _ = td.train_model(df)
-    return {"model": model, "scaler": scaler, "features": feature_cols}
+    model, classifier, scaler, feature_cols, _, _, _ = td.train_model(df)
+    return {"model": model, "classifier": classifier, "scaler": scaler, "features": feature_cols}
 
 
 @st.cache_resource
@@ -167,13 +168,21 @@ def get_meter_data():
         scores = pd.read_csv(scores_path)
     else:
         bundle = load_theft_model()
-        model, scaler, feature_cols = bundle["model"], bundle["scaler"], bundle["features"]
+        model, classifier, scaler, feature_cols = (
+            bundle["model"], bundle["classifier"], bundle["scaler"], bundle["features"]
+        )
         X_scaled = scaler.transform(raw[feature_cols])
         raw_scores = -model.score_samples(X_scaled)
         anomaly_score = (raw_scores - raw_scores.min()) / (raw_scores.max() - raw_scores.min() + 1e-9) * 100
         flagged = model.predict(X_scaled) == -1
+        supervised_proba = classifier.predict_proba(raw[feature_cols])[:, 1]
+        theft_risk_pct = (
+            td.SUPERVISED_BLEND_WEIGHT * supervised_proba * 100
+            + (1 - td.SUPERVISED_BLEND_WEIGHT) * anomaly_score
+        )
         scores = td.score_all_meters(
-            raw, scaler, feature_cols, anomaly_score, flagged, model=model, explain_predictions=True
+            raw, scaler, feature_cols, anomaly_score, flagged, theft_risk_pct,
+            model=model, classifier=classifier, explain_predictions=True,
         )
         scores.to_csv(scores_path, index=False)
     return raw, scores
@@ -196,17 +205,12 @@ def get_feeder_data():
 
 @st.cache_data
 def get_meter_importance():
-    # Isolation Forest has no feature_importances_, so global importance
-    # comes from SHAP contributions on a sample (fast, statistically fine
-    # for an aggregate ranking - the per-row explainer below uses the exact
-    # row, not the sample).
-    raw, _ = get_meter_data()
+    # Random Forest has real feature_importances_ - same helper
+    # models/failure_prediction.py uses, more legitimate to show than the
+    # Isolation Forest SHAP-fallback approximation this used before.
     bundle = load_theft_model()
-    model, scaler, feature_cols = bundle["model"], bundle["scaler"], bundle["features"]
-    sample = raw.sample(n=min(2000, len(raw)), random_state=42)
-    X_scaled = pd.DataFrame(scaler.transform(sample[feature_cols]), columns=feature_cols, index=sample.index)
-    contributions, _ = explain.explain_batch(model, X_scaled, feature_cols)
-    return explain.importance_from_contributions(contributions)
+    classifier, feature_cols = bundle["classifier"], bundle["features"]
+    return explain.global_importance(classifier, feature_cols)
 
 
 def three_way_status(score, low_label, mid_label, high_label):
@@ -502,6 +506,48 @@ def render_compare(row):
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 
+def render_meter_investigation_card(meter_id):
+    _, scores = get_meter_data()
+    match = scores[scores["meter_id"] == meter_id]
+    if match.empty:
+        st.info(f"No score data for {meter_id} yet - run models/theft_detection.py first.")
+        return
+    row = match.iloc[0]
+    tier = row["priority_tier"]
+    tag_color = STATUS_COLOR_BY_TIER.get(tier, "#52514e")
+    location = row.get("substation_name") or row.get("cnc")
+    history = auth.get_meter_investigation_history(meter_id, limit=5)
+    if history:
+        latest = history[0]
+        status_line = (
+            f"Last investigation: {latest['status'].replace('_', ' ')} "
+            f"by {latest['technician_name']} on {latest['created_at'][:10]}"
+        )
+    else:
+        status_line = "No investigation submitted yet."
+
+    st.markdown(
+        f"""
+        <div class="sg-card" style="--sg-accent:{ACCENT['meter']}">
+          <h4>🔌 Meter {row['meter_id']} — Theft Risk: {row['theft_risk_pct']:.0f}%
+            <span class="sg-tag" style="background:{tag_color}">{tier.upper()} PRIORITY</span>
+          </h4>
+          <div class="sg-field-grid">
+            <div class="sg-field"><div class="sg-field-value">{row['expected_kwh']:.0f} kWh</div><div class="sg-field-label">Expected consumption</div></div>
+            <div class="sg-field"><div class="sg-field-value">{row['actual_kwh']:.0f} kWh</div><div class="sg-field-label">Actual consumption</div></div>
+            <div class="sg-field"><div class="sg-field-value">{row['consumption_deviation_pct']:.0f}%</div><div class="sg-field-label">Pattern deviation</div></div>
+            <div class="sg-field"><div class="sg-field-value">{int(row['confirmed_incidents_nearby_12mo'])}</div><div class="sg-field-label">Previous incidents nearby</div></div>
+            <div class="sg-field" style="grid-column:1 / -1;"><div class="sg-field-value" style="font-size:15px;">{location or "Unknown"}</div><div class="sg-field-label">Location</div></div>
+          </div>
+          <div style="font-size:12.5px; font-weight:700; color:#52514e; margin-bottom:2px;">Recommendation</div>
+          <ul class="sg-check-list"><li>{row['recommended_action']}</li></ul>
+          <div style="font-size:12px; color:#7a7869; margin-top:6px;">{status_line}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 # --------------------------------------------------------------------------
 # Header
 # --------------------------------------------------------------------------
@@ -707,7 +753,7 @@ with tab_theft:
             (f"{len(scores):,}", "Total meters"),
             (f"{len(suspected):,}", "Suspected theft cases"),
             (f"{int((scores['priority_tier'] == 'emergency').sum()):,}", "Emergency tier"),
-            (f"{scores['anomaly_score'].mean():.1f}", "Average anomaly score"),
+            (f"{scores['theft_risk_pct'].mean():.1f}", "Average theft risk %"),
         ],
         ACCENT["meter"],
     )
@@ -718,40 +764,41 @@ with tab_theft:
         st.caption("Fleet breakdown by severity tier")
         tier_bar_chart(scores, "priority_tier")
     with right:
-        st.caption("Suspected theft cases (highest anomaly score first)")
+        st.caption("Suspected theft cases (highest risk first)")
         tier_badge_table(
             suspected if len(suspected) else scores,
-            "meter_id", "anomaly_score", "priority_tier", ["top_reasons"],
+            "meter_id", "theft_risk_pct", "priority_tier", ["top_reasons"],
         )
 
     st.download_button(
         "Download all predictions as CSV", scores.to_csv(index=False), "meter_theft_predictions.csv"
     )
 
+    st.subheader("Investigate a flagged meter")
+    pick_pool = scores.sort_values("theft_risk_pct", ascending=False).head(30)["meter_id"].tolist()
+    investigate_id = st.selectbox("Meter (top 30 by theft risk)", pick_pool, key="theft_investigate_pick")
+    render_meter_investigation_card(investigate_id)
+
     st.subheader("3D risk landscape")
-    st.caption("Recent usage drop × night usage ratio × anomaly score, one point per meter")
-    landscape = raw.merge(scores[["meter_id", "anomaly_score", "priority_tier"]], on="meter_id")
+    st.caption("Recent usage drop × night usage ratio × theft risk %, one point per meter")
+    landscape = raw.merge(scores[["meter_id", "theft_risk_pct", "priority_tier"]], on="meter_id")
     risk_landscape_3d(
-        landscape, "pct_drop_recent", "night_usage_ratio", "anomaly_score", "priority_tier", "meter_id",
-        ["Recent usage drop (%)", "Night usage ratio", "Anomaly score"], key="landscape_meter",
+        landscape, "pct_drop_recent", "night_usage_ratio", "theft_risk_pct", "priority_tier", "meter_id",
+        ["Recent usage drop (%)", "Night usage ratio", "Theft risk %"], key="landscape_meter",
     )
 
     st.subheader("Why does the model flag this?")
     left, right = st.columns(2)
     with left:
-        st.caption("Global feature importance (sampled fleet)")
+        st.caption("Global feature importance (Random Forest, sampled fleet)")
         importance_bar_chart(get_meter_importance(), ACCENT["meter"])
     with right:
-        st.caption("Explain one meter's anomaly score")
-        pick_pool = scores.sort_values("anomaly_score", ascending=False).head(30)["meter_id"].tolist()
-        chosen_id = st.selectbox("Meter (top 30 by anomaly score)", pick_pool, key="theft_pick")
+        st.caption("Explain one meter's theft risk")
+        chosen_id = st.selectbox("Meter (top 30 by theft risk)", pick_pool, key="theft_pick")
         bundle = load_theft_model()
-        model, scaler, feature_cols = bundle["model"], bundle["scaler"], bundle["features"]
+        classifier, feature_cols = bundle["classifier"], bundle["features"]
         row_df = raw[raw["meter_id"] == chosen_id]
-        row_scaled = pd.DataFrame(
-            scaler.transform(row_df[feature_cols]), columns=feature_cols, index=row_df.index
-        )
-        contributions, used_shap = explain.explain_batch(model, row_scaled, feature_cols)
+        contributions, used_shap = explain.explain_batch(classifier, row_df[feature_cols], feature_cols)
         contribution_bar_chart(contributions.iloc[0])
         if not used_shap:
             st.caption("Approximate contribution (shap not installed)")

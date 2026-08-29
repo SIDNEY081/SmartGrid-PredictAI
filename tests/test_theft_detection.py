@@ -23,13 +23,20 @@ def test_generator_schema_matches_model_features():
 
 def test_pipeline_end_to_end():
     df = td.load_data()
-    model, scaler, feature_cols, anomaly_scores, flagged = td.train_model(df)
+    model, classifier, scaler, feature_cols, anomaly_scores, flagged, theft_risk_pct = td.train_model(df)
     assert len(anomaly_scores) == len(df)
     assert len(flagged) == len(df)
+    assert len(theft_risk_pct) == len(df)
 
-    scored = td.score_all_meters(df, scaler, feature_cols, anomaly_scores, flagged, model=model)
+    scored = td.score_all_meters(
+        df, scaler, feature_cols, anomaly_scores, flagged, theft_risk_pct, model=model, classifier=classifier
+    )
     assert len(scored) == len(df)
-    assert {"meter_id", "anomaly_score", "investigation_flag", "priority_tier", "top_reasons"} <= set(scored.columns)
+    assert {
+        "meter_id", "anomaly_score", "investigation_flag", "priority_tier", "top_reasons",
+        "theft_risk_pct", "expected_kwh", "actual_kwh", "consumption_deviation_pct", "recommended_action",
+        "estimated_monthly_loss_rand",
+    } <= set(scored.columns)
     assert scored["meter_id"].is_unique
 
 

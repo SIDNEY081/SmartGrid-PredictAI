@@ -74,14 +74,23 @@ else:
 # on. Administrator sees and can act on everything, for oversight.
 PANEL_ROLES = {
     "home": set(auth.ROLES),
-    "assistant": {"administrator", "engineer"},
-    "transformer": {"administrator", "engineer"},
-    "meter": {"administrator", "investigator"},
-    "feeder": {"administrator", "engineer"},
+    # manager gets read-only Q&A (predict/health/history/compare) but never
+    # report generation - see REPORT_GENERATION_ROLES below and the
+    # AI_SYSTEM_PROMPT rule that already tells the assistant to explain that
+    # restriction rather than silently refuse.
+    "assistant": {"administrator", "engineer", "manager"},
+    "transformer": {"administrator", "engineer", "manager"},
+    "meter": {"administrator", "investigator", "manager"},
+    "feeder": {"administrator", "engineer", "manager"},
+    "asset_management": {"administrator", "engineer", "manager"},
     "reports": {"administrator", "engineer"},
     "assignments": {"administrator", "engineer"},
     "meter_assignments": {"administrator", "investigator"},
     "settings": {"administrator"},
+    # Read-only activity/inspection/investigation trail - deliberately NOT
+    # part of "settings" (which also manages user accounts), so an auditor
+    # can review records without ever being able to touch a user.
+    "audit": {"administrator", "auditor"},
 }
 
 # Roles allowed to assign/unassign technicians to transformers - engineers
@@ -319,6 +328,107 @@ def build_panel(
     }
 
 
+# Mirrors models/theft_detection.py's TARIFF_RAND_PER_KWH - kept as a
+# separate constant rather than importing the models package here (this app
+# deliberately never imports sklearn-dependent model code, only reads their
+# CSV/joblib output), so bump both if the placeholder tariff ever changes.
+TARIFF_RAND_PER_KWH_DISPLAY = 2.60
+
+
+def build_executive_summary():
+    """One cross-fleet summary for the Executive Overview - real counts
+    pulled fresh from the same scored CSVs the per-entity panels use, not a
+    second copy of the numbers. Returns plain ints/floats (not build_panel's
+    comma-formatted strings) since these get summed across entity types."""
+    transformers = pd.read_csv(DATA / "transformer_risk_scores.csv") if (DATA / "transformer_risk_scores.csv").exists() else None
+    meters = pd.read_csv(DATA / "meter_theft_scores.csv") if (DATA / "meter_theft_scores.csv").exists() else None
+    feeders = pd.read_csv(DATA / "feeder_outage_scores.csv") if (DATA / "feeder_outage_scores.csv").exists() else None
+
+    total_assets = sum(len(df) for df in (transformers, meters, feeders) if df is not None)
+
+    at_risk = 0
+    for df, tier_col in ((transformers, "risk_tier"), (meters, "priority_tier"), (feeders, "risk_tier")):
+        if df is not None:
+            at_risk += int(df[tier_col].isin(["elevated", "emergency"]).sum())
+
+    predicted_failures = int(transformers["alert_flag"].sum()) if transformers is not None else 0
+    theft_alerts = int(meters["investigation_flag"].sum()) if meters is not None else 0
+    outages_likely = int(feeders["alert_flag"].sum()) if feeders is not None else 0
+
+    estimated_loss_rand = 0
+    if meters is not None and "estimated_monthly_loss_rand" in meters.columns:
+        actionable = meters[meters["priority_tier"].isin(["elevated", "emergency"])]
+        estimated_loss_rand = int(actionable["estimated_monthly_loss_rand"].sum())
+
+    return {
+        "total_assets": f"{total_assets:,}",
+        "at_risk": f"{at_risk:,}",
+        "predicted_failures": f"{predicted_failures:,}",
+        "theft_alerts": f"{theft_alerts:,}",
+        "outages_likely": f"{outages_likely:,}",
+        "estimated_loss_rand": f"R{estimated_loss_rand:,.0f}",
+        "tariff": TARIFF_RAND_PER_KWH_DISPLAY,
+    }
+
+
+def build_asset_management():
+    """Fleet-wide asset health rollup - transformer health/age/maintenance
+    backlog plus a substation health ranking, none of which exist as a
+    per-transformer detail field. Reuses _load_transformer_full() (defined
+    below) rather than re-merging the two CSVs a second time."""
+    full = _load_transformer_full()
+    overdue = auth.count_overdue_transformer_maintenance()
+    at_risk = int(full["risk_tier"].isin(["elevated", "emergency"]).sum())
+
+    worst_health = full.sort_values("health_score").head(15)
+    risk_rows = [
+        {
+            "id": row["transformer_id"],
+            "substation": row["substation_name"],
+            "health_score": round(float(row["health_score"]), 1),
+            "age_years": round(float(row["age_years"]), 1),
+            "risk_tier": row["risk_tier"],
+            "next_maintenance_date": row.get("next_maintenance_date"),
+        }
+        for _, row in worst_health.iterrows()
+    ]
+
+    substations = (
+        full.groupby(["substation_id", "substation_name", "cnc"])
+        .agg(
+            transformer_count=("transformer_id", "count"),
+            avg_health_score=("health_score", "mean"),
+            avg_age_years=("age_years", "mean"),
+            at_risk_count=("risk_tier", lambda s: int(s.isin(["elevated", "emergency"]).sum())),
+        )
+        .reset_index()
+        .sort_values("avg_health_score")
+    )
+    substation_rows = [
+        {
+            "substation_id": row["substation_id"],
+            "substation_name": row["substation_name"],
+            "cnc": row["cnc"],
+            "transformer_count": int(row["transformer_count"]),
+            "avg_health_score": round(float(row["avg_health_score"]), 1),
+            "avg_age_years": round(float(row["avg_age_years"]), 1),
+            "at_risk_count": int(row["at_risk_count"]),
+        }
+        for _, row in substations.iterrows()
+    ]
+
+    return {
+        "total": f"{len(full):,}",
+        "avg_health_score": round(float(full["health_score"].mean()), 1),
+        "avg_age_years": round(float(full["age_years"].mean()), 1),
+        "overdue": overdue,
+        "at_risk": at_risk,
+        "risk_rows": risk_rows,
+        "substation_rows": substation_rows,
+        "tier_color_map": dict(zip(["low", "moderate", "elevated", "emergency"], STATUS_COLORS)),
+    }
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("user_id"):
@@ -385,8 +495,8 @@ def index():
         meter = build_panel(
             DATA / "meter_theft_scores.csv",
             id_col="meter_id",
-            score_col="anomaly_score",
-            score_label="Anomaly score",
+            score_col="theft_risk_pct",
+            score_label="Theft risk %",
             tier_col="priority_tier",
             flag_col="investigation_flag",
             tier_order=["low", "moderate", "elevated", "emergency"],
@@ -394,7 +504,9 @@ def index():
             slug="meter",
             raw_path=DATA / "meter_data.csv",
             landscape_cols=("pct_drop_recent", "night_usage_ratio"),
-            landscape_labels=["Recent usage drop (%)", "Night usage ratio", "Anomaly score"],
+            landscape_labels=["Recent usage drop (%)", "Night usage ratio", "Theft risk %"],
+            feeder_col="feeder_id",
+            map_cols=("meter_lat", "meter_lon"),
         )
     if role in PANEL_ROLES["feeder"]:
         feeder = build_panel(
@@ -412,6 +524,10 @@ def index():
             landscape_labels=["Peak load (%)", "Vegetation score", "Outage risk score"],
         )
 
+    asset_management = None
+    if role in PANEL_ROLES["asset_management"]:
+        asset_management = build_asset_management()
+
     home = None
     if role == "administrator":
         home = {
@@ -422,8 +538,20 @@ def index():
         }
     elif role == "technician":
         home = {"kind": "technician"}
+    elif role == "auditor":
+        home = {"kind": "auditor", "recent_activity_count": len(auth.recent_activity(limit=100))}
     else:
         home = {"kind": "fleet"}
+
+    executive = build_executive_summary() if home["kind"] in ("administrator", "fleet") else None
+
+    audit = None
+    if role in PANEL_ROLES["audit"]:
+        audit = {
+            "activity": auth.recent_activity(limit=50),
+            "inspections": auth.recent_inspections_fleet(limit=30),
+            "meter_investigations": auth.recent_meter_investigations_fleet(limit=30),
+        }
 
     # Real backlog counts, not a decorative widget - only computed for the
     # domain the signed-in role actually acts on (transformer dispatch for
@@ -442,6 +570,12 @@ def index():
             if gap:
                 maintenance_queue.append({
                     "text": f"{gap} emergency-tier transformer{'s' if gap != 1 else ''} not yet assigned to a technician",
+                    "severity": "emergency",
+                })
+            if asset_management and asset_management["overdue"]:
+                overdue = asset_management["overdue"]
+                maintenance_queue.append({
+                    "text": f"{overdue} transformer{'s' if overdue != 1 else ''} overdue for scheduled maintenance",
                     "severity": "emergency",
                 })
         if meter:
@@ -463,8 +597,11 @@ def index():
         role_label=auth.ROLE_LABELS[role],
         allowed_panels=allowed_panels,
         home=home,
+        executive=executive,
+        audit=audit,
         maintenance_queue=maintenance_queue,
         transformer=transformer, meter=meter, feeder=feeder,
+        asset_management=asset_management,
     )
 
 
@@ -610,9 +747,39 @@ def _load_meter_full():
     raw_cols = [
         "meter_id", "declared_kwh", "transformer_feed_estimate_kwh",
         "historical_avg_kwh", "pct_drop_recent", "night_usage_ratio",
+        "meter_reversal_events_6mo", "zero_consumption_days_90d", "tamper_alarm_count",
     ]
     raw = pd.read_csv(DATA / "meter_data.csv")[raw_cols]
     return scores.merge(raw, on="meter_id")
+
+
+@app.route("/api/meter/<meter_id>")
+@auth.roles_required(*PANEL_ROLES["meter"])
+def meter_detail(meter_id):
+    full = _load_meter_full()
+    match = full[full["meter_id"] == meter_id]
+    if match.empty:
+        return jsonify({"error": f"{meter_id} not found"}), 404
+    row = match.iloc[0]
+    tier = row["priority_tier"]
+    history = auth.get_meter_investigation_history(meter_id)
+    return jsonify({
+        "id": row["meter_id"],
+        "theft_risk_pct": round(float(row["theft_risk_pct"]), 1),
+        "anomaly_score": round(float(row["anomaly_score"]), 1),
+        "priority_tier": tier,
+        "expected_kwh": round(float(row["expected_kwh"]), 1),
+        "actual_kwh": round(float(row["actual_kwh"]), 1),
+        "consumption_deviation_pct": round(float(row["consumption_deviation_pct"]), 1),
+        "feeder_id": row.get("feeder_id"),
+        "cnc": row.get("cnc"),
+        "substation_id": row.get("substation_id"),
+        "substation_name": row.get("substation_name"),
+        "confirmed_incidents_nearby_12mo": int(row["confirmed_incidents_nearby_12mo"]),
+        "top_reasons": row["top_reasons"] if "top_reasons" in row and pd.notna(row["top_reasons"]) else None,
+        "recommendations": knowledge_base.THEFT_ACTIONS.get(tier, []),
+        "investigation_history": history,
+    })
 
 
 @app.route("/api/transformer/<transformer_id>")
@@ -872,7 +1039,13 @@ def meter_technician_assignments(technician_id):
     full = _load_meter_full()
     rows = full[full["meter_id"].isin(assigned_ids)]
     items = [
-        {"id": row["meter_id"], "anomaly_score": round(float(row["anomaly_score"]), 1), "priority_tier": row["priority_tier"]}
+        {
+            "id": row["meter_id"],
+            "anomaly_score": round(float(row["anomaly_score"]), 1),
+            "theft_risk_pct": round(float(row["theft_risk_pct"]), 1),
+            "priority_tier": row["priority_tier"],
+            "substation_name": row.get("substation_name"),
+        }
         for _, row in rows.iterrows()
     ]
     return jsonify({"assignments": items})
@@ -997,7 +1170,14 @@ def technician_meter_assignments():
         items.append({
             "id": row["meter_id"],
             "anomaly_score": round(float(row["anomaly_score"]), 1),
+            "theft_risk_pct": round(float(row["theft_risk_pct"]), 1),
             "priority_tier": row["priority_tier"],
+            "expected_kwh": round(float(row["expected_kwh"]), 1),
+            "actual_kwh": round(float(row["actual_kwh"]), 1),
+            "consumption_deviation_pct": round(float(row["consumption_deviation_pct"]), 1),
+            "substation_name": row.get("substation_name"),
+            "confirmed_incidents_nearby_12mo": int(row["confirmed_incidents_nearby_12mo"]),
+            "recommended_action": row.get("recommended_action"),
             "top_reasons": row["top_reasons"] if "top_reasons" in row and pd.notna(row["top_reasons"]) else None,
             "last_investigation": history[0] if history else None,
         })

@@ -267,7 +267,7 @@ GLOSSARY = {
 }
 GLOSSARY["dga"] = GLOSSARY["dissolved gas analysis"]
 
-# Ordered recommended-action lists per risk tier, deliberately aligned with
+# Ordered action lists per risk tier, deliberately aligned with
 # models/failure_prediction.py's TIER_TO_MAINTENANCE_INTERVAL_DAYS (7/30/90/180
 # days for emergency/elevated/moderate/low) so the wording matches the actual
 # next_maintenance_date the model computes.
@@ -295,5 +295,32 @@ MAINTENANCE_ACTIONS = {
         "No immediate action required",
         "Continue the routine inspection schedule",
         "Recheck at the next scheduled maintenance (within 180 days)",
+    ],
+}
+
+# Same four-tier shape as MAINTENANCE_ACTIONS above, aligned with (but kept
+# separate from) models/theft_detection.py's own THEFT_ACTIONS - that copy
+# drives the single-line recommended_action column persisted to
+# meter_theft_scores.csv, this one is the fuller checklist shown in the
+# investigator/technician meter detail view.
+THEFT_ACTIONS = {
+    "emergency": [
+        "Dispatch field inspection within 24 hours",
+        "Cross-check transformer feed log against billed usage",
+        "Photograph the meter and connection point on-site",
+        "Escalate to Revenue Protection for audit",
+    ],
+    "elevated": [
+        "Schedule field inspection within 7 days",
+        "Review recent meter reading history for irregularities",
+        "Notify the area Revenue Protection Officer",
+    ],
+    "moderate": [
+        "Monitor consumption trend at the next scheduled read",
+        "Flag account for a routine audit",
+    ],
+    "low": [
+        "No action required",
+        "Continue routine billing checks",
     ],
 }

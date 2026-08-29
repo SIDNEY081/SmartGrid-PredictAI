@@ -7,6 +7,12 @@ def test_maintenance_actions_covers_all_tiers():
         assert len(actions) > 0
 
 
+def test_theft_actions_covers_all_tiers():
+    assert set(kb.THEFT_ACTIONS.keys()) == {"emergency", "elevated", "moderate", "low"}
+    for actions in kb.THEFT_ACTIONS.values():
+        assert len(actions) > 0
+
+
 def test_symptom_and_glossary_keys_do_not_collide():
     # Dispatch in chatbot.py checks GLOSSARY then SYMPTOM_CAUSES by substring
     # match - if a phrase could match both, the outcome would depend on

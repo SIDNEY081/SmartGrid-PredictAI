@@ -205,8 +205,12 @@ def generate_transformer_data(n=N_TRANSFORMERS, n_feeders=N_FEEDERS, seed=RANDOM
     return df
 
 
-def generate_meter_data(n=N_METERS, seed=RANDOM_SEED):
+def generate_meter_data(n=N_METERS, n_feeders=N_FEEDERS, seed=RANDOM_SEED, topology=None):
     rng = np.random.default_rng(seed + 1)
+    if topology is None:
+        topology = generate_feeder_topology(n_feeders, seed)
+
+    feeder_id = rng.integers(1, n_feeders + 1, size=n)
 
     area_theft_history_rate = np.clip(rng.beta(2, 10, size=n) * 0.6, 0.02, 0.35)
     theft_prob = np.clip(0.05 + area_theft_history_rate * 0.5, 0.03, 0.4)
@@ -217,10 +221,14 @@ def generate_meter_data(n=N_METERS, seed=RANDOM_SEED):
     # Honest meters: declared usage tracks true usage closely. Theft meters:
     # declared usage is under-reported relative to what the transformer
     # actually fed the connection - the classic bypass/tampering signature.
+    # Normal (not disjoint-uniform) with enough spread to overlap at the
+    # boundary - a real utility's theft/honest populations aren't cleanly
+    # separable on any single signal, and a classifier trained on data where
+    # they are would report unrealistic near-100% precision/recall.
     underreport_factor = np.where(
         is_theft == 1,
-        rng.uniform(1.3, 2.4, size=n),
-        rng.uniform(0.97, 1.05, size=n),
+        np.clip(rng.normal(1.55, 0.35, size=n), 1.0, 3.0),
+        np.clip(rng.normal(1.0, 0.10, size=n), 0.75, 1.6),
     )
     declared_kwh = np.clip(true_usage_kwh / underreport_factor, 15, 400)
     transformer_feed_estimate_kwh = np.clip(
@@ -230,11 +238,13 @@ def generate_meter_data(n=N_METERS, seed=RANDOM_SEED):
         declared_kwh + rng.normal(0, 8, size=n), 10, 400
     )
 
+    # Same overlap reasoning as underreport_factor above - normal, not
+    # disjoint-uniform, so honest and theft populations genuinely overlap.
     pct_drop_recent = np.clip(
         np.where(
             is_theft == 1,
-            rng.uniform(0.15, 0.55, size=n),
-            rng.uniform(0.0, 0.12, size=n),
+            rng.normal(0.28, 0.15, size=n),
+            rng.normal(0.06, 0.06, size=n),
         ),
         0,
         1,
@@ -242,12 +252,51 @@ def generate_meter_data(n=N_METERS, seed=RANDOM_SEED):
     night_usage_ratio = np.clip(
         np.where(
             is_theft == 1,
-            rng.uniform(0.35, 0.7, size=n),
-            rng.uniform(0.1, 0.4, size=n),
+            rng.normal(0.48, 0.15, size=n),
+            rng.normal(0.22, 0.10, size=n),
         ),
         0,
         1,
     )
+
+    # Bypass/tampering signatures - rare events for an honest meter, much
+    # more common once a connection has been physically tampered with.
+    meter_reversal_events_6mo = np.where(
+        is_theft == 1, rng.poisson(0.9, size=n), rng.poisson(0.05, size=n)
+    )
+    zero_consumption_days_90d = np.where(
+        is_theft == 1, rng.poisson(4.0, size=n), rng.poisson(0.3, size=n)
+    )
+    tamper_alarm_count = np.where(
+        is_theft == 1, rng.poisson(0.6, size=n), rng.poisson(0.02, size=n)
+    )
+
+    # Display-only context for the theft dashboard card - deliberately not a
+    # model feature since it's a direct derivative of area_theft_history_rate,
+    # which is already in NUMERIC_FEATURES; including both would just double
+    # -count the same signal.
+    confirmed_incidents_nearby_12mo = rng.poisson(area_theft_history_rate * 20)
+
+    # Location comes from the shared feeder topology, same as transformers -
+    # so "meter M02947 is on feeder F007" always agrees with the feeder's own
+    # CNC/substation record.
+    feeder_id_str = [f"F{f:03d}" for f in feeder_id]
+    topo_by_feeder = topology.set_index("feeder_id")
+    topo_matched = topo_by_feeder.loc[feeder_id_str].reset_index()
+    gps_lat = (topo_matched["substation_lat"].values + rng.normal(0, 0.006, size=n)).round(5)
+    gps_lon = (topo_matched["substation_lon"].values + rng.normal(0, 0.006, size=n)).round(5)
+
+    # Label noise: the recorded is_theft label represents a real revenue-
+    # protection investigation outcome, not the meter's true latent behavior
+    # - and investigations aren't perfect (missed detections, and honest
+    # meters occasionally get wrongly flagged in the historical record). A
+    # small flip rate keeps the label from being a deterministic function of
+    # the features above, so a classifier trained on it can't achieve an
+    # unrealistic ~100% precision/recall - it has to learn a genuine pattern
+    # with a genuine error floor, the way it would on real data.
+    label_noise_rate = 0.04
+    flip = rng.random(n) < label_noise_rate
+    observed_is_theft = np.where(flip, 1 - is_theft, is_theft)
 
     df = pd.DataFrame({
         "meter_id": [f"M{i:05d}" for i in range(1, n + 1)],
@@ -257,7 +306,17 @@ def generate_meter_data(n=N_METERS, seed=RANDOM_SEED):
         "pct_drop_recent": pct_drop_recent.round(3),
         "night_usage_ratio": night_usage_ratio.round(3),
         "area_theft_history_rate": area_theft_history_rate.round(3),
-        "is_theft": is_theft,
+        "meter_reversal_events_6mo": meter_reversal_events_6mo,
+        "zero_consumption_days_90d": zero_consumption_days_90d,
+        "tamper_alarm_count": tamper_alarm_count,
+        "confirmed_incidents_nearby_12mo": confirmed_incidents_nearby_12mo,
+        "feeder_id": feeder_id_str,
+        "cnc": topo_matched["cnc"].values,
+        "substation_id": topo_matched["substation_id"].values,
+        "substation_name": topo_matched["substation_name"].values,
+        "meter_lat": gps_lat,
+        "meter_lon": gps_lon,
+        "is_theft": observed_is_theft,
     })
     return df
 
@@ -357,7 +416,7 @@ def generate_transformer_history(transformer_df, n_months=12, seed=45):
 if __name__ == "__main__":
     topology = generate_feeder_topology()
     transformer_df = generate_transformer_data(topology=topology)
-    meter_df = generate_meter_data()
+    meter_df = generate_meter_data(topology=topology)
     feeder_df = generate_feeder_data(transformer_df, topology)
     history_df = generate_transformer_history(transformer_df)
 

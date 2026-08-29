@@ -180,8 +180,8 @@ def query_fleet(
         label_bits.append(f"with status {active_metadata['status']}")
 
     if high_risk_only:
-        subset = subset[subset[cfg["tier_col"]].isin(["elevated", "critical"])]
-        label_bits.append("at high risk (elevated or critical)")
+        subset = subset[subset[cfg["tier_col"]].isin(["elevated", "emergency"])]
+        label_bits.append("at high risk (elevated or emergency)")
     elif tier:
         subset = subset[subset[cfg["tier_col"]] == tier.strip().lower()]
         label_bits.append(f"in the {tier.strip().lower()} tier")

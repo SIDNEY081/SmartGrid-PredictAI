@@ -25,6 +25,19 @@
   </div>
   {%- endmacro %}
 
+  {% macro executive_summary(executive) -%}
+  <h3 class="dash-section-title">📋&nbsp;Executive Summary</h3>
+  <div class="stat-row">
+    {{ stat_tile("🗂️", executive.total_assets, "Total assets") }}
+    {{ stat_tile("⚠️", executive.at_risk, "Assets at risk", "warning") }}
+    {{ stat_tile("📈", executive.predicted_failures, "Predicted failures", "warning") }}
+    {{ stat_tile("🔌", executive.theft_alerts, "Theft alerts", "warning") }}
+    {{ stat_tile("⚡", executive.outages_likely, "Outages likely", "warning") }}
+    {{ stat_tile("💰", executive.estimated_loss_rand, "Est. monthly theft loss", "emergency") }}
+  </div>
+  <p class="assistant-sub" style="font-size:11px;">Estimated loss is a prototype calculation - diverted kWh on flagged meters × a placeholder tariff of R{{ "%.2f"|format(executive.tariff) }}/kWh, not a real billing figure.</p>
+  {%- endmacro %}
+
   <div class="app-shell">
     <aside class="sidebar">
       <div class="sidebar-brand">
@@ -36,9 +49,12 @@
       </div>
 
       <nav class="side-nav">
-        <button type="button" class="tab-btn" data-panel="home">🏠&nbsp;Dashboard</button>
+        <button type="button" class="tab-btn" data-panel="home">🏠&nbsp;{% if user.role in ["administrator", "engineer", "investigator", "manager"] %}Executive Overview{% else %}Dashboard{% endif %}</button>
         {% if "transformer" in allowed_panels %}
         <button type="button" class="tab-btn" data-panel="transformer">📈&nbsp;Transformer Prediction</button>
+        {% endif %}
+        {% if "asset_management" in allowed_panels %}
+        <button type="button" class="tab-btn" data-panel="asset_management">🏗️&nbsp;Asset Management</button>
         {% endif %}
         {% if "meter" in allowed_panels %}
         <button type="button" class="tab-btn" data-panel="meter">🔌&nbsp;Meter Theft Detection</button>
@@ -58,6 +74,9 @@
         {% if "settings" in allowed_panels %}
         <button type="button" class="tab-btn" data-panel="settings">⚙️&nbsp;Settings</button>
         {% endif %}
+        {% if "audit" in allowed_panels %}
+        <button type="button" class="tab-btn" data-panel="audit">🕵️&nbsp;Audit &amp; Governance</button>
+        {% endif %}
       </nav>
 
       <div class="sidebar-user">
@@ -73,7 +92,9 @@
       <!-- ================= Dashboard (role-variant) ================= -->
       <section class="panel" data-panel="home">
         {% if home.kind == "administrator" %}
-        <h2>🏠&nbsp;Administrator Dashboard</h2>
+        <h2>🏠&nbsp;Executive Overview</h2>
+        {% if executive %}{{ executive_summary(executive) }}{% endif %}
+        <h3 class="dash-section-title">⚙️&nbsp;Administration</h3>
         <p class="assistant-sub">System-wide overview - user accounts, dataset freshness, and recent activity.</p>
         <div class="stat-row">
           {{ stat_tile("👤", home.user_count, "User accounts") }}
@@ -131,9 +152,18 @@
           </div>
         </div>
 
+        {% elif home.kind == "auditor" %}
+        <h2>🕵️&nbsp;Audit &amp; Compliance</h2>
+        <p class="assistant-sub">Read-only access to the activity log and field-submission history - no user management, no assignment or write actions.</p>
+        <div class="stat-row">
+          {{ stat_tile("📝", home.recent_activity_count, "Recent activity events") }}
+        </div>
+        <p class="assistant-sub">Open <strong>🕵️ Audit &amp; Governance</strong> on the left for the full activity log and inspection/investigation history.</p>
+
         {% else %}
-        <h2>🏠&nbsp;Fleet Dashboard</h2>
+        <h2>🏠&nbsp;Executive Overview</h2>
         <p class="assistant-sub">A fleet-wide snapshot across all three models. Open a tab on the left for full detail, drill-down tables, and the 3D risk landscape.</p>
+        {% if executive %}{{ executive_summary(executive) }}{% endif %}
 
         {% if transformer %}
         <h3 class="dash-section-title">{{ entity_icon("transformer") }}Transformers</h3>
@@ -151,7 +181,7 @@
           {{ stat_tile("🔌", meter.total, "Total meters") }}
           {{ stat_tile("⚠️", meter.flagged, "Flagged for action", "warning") }}
           {{ stat_tile("🔥", meter.top_tier_count, meter.top_tier_name ~ " tier", "emergency") }}
-          {{ stat_tile("📊", meter.avg_score, "Average anomaly score") }}
+          {{ stat_tile("📊", meter.avg_score, "Average theft risk %") }}
         </div>
         {% endif %}
 
@@ -178,6 +208,9 @@
             {% endfor %}
           </ul>
           <div class="queue-actions">
+            {% if "asset_management" in allowed_panels %}
+            <button type="button" class="queue-action-btn" data-goto-panel="asset_management">🏗️&nbsp;Asset Management</button>
+            {% endif %}
             {% if "assignments" in allowed_panels %}
             <button type="button" class="queue-action-btn" data-goto-panel="assignments">👷&nbsp;Assign Technicians</button>
             {% endif %}
@@ -231,6 +264,140 @@
         </div>
         {% endif %}
       </section>
+
+      <!-- ================= Asset Management ================= -->
+      {% if asset_management %}
+      <section class="panel" data-panel="asset_management">
+        <h2>🏗️&nbsp;Asset Management</h2>
+        <p class="assistant-sub">Transformer health, age, and maintenance backlog across the fleet - real numbers off the scored data, not a demo widget.</p>
+
+        <div class="stat-row">
+          {{ stat_tile("📈", asset_management.total, "Total transformers") }}
+          {{ stat_tile("💚", asset_management.avg_health_score, "Average health score") }}
+          {{ stat_tile("🕰️", asset_management.avg_age_years, "Average age (years)") }}
+          {{ stat_tile("🗓️", asset_management.overdue, "Overdue for maintenance", "warning") }}
+          {{ stat_tile("⚠️", asset_management.at_risk, "At risk (elevated/emergency)", "warning") }}
+        </div>
+
+        <h3 class="dash-section-title">🏢&nbsp;Substation health ranking</h3>
+        <p class="assistant-sub">Worst average transformer health first.</p>
+        <table class="score-table">
+          <thead>
+            <tr>
+              <th>Substation</th>
+              <th>CNC</th>
+              <th>Transformers</th>
+              <th>Avg health</th>
+              <th>Avg age</th>
+              <th>At risk</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in asset_management.substation_rows %}
+            <tr>
+              <td>{{ row.substation_name }}</td>
+              <td>{{ row.cnc }}</td>
+              <td>{{ row.transformer_count }}</td>
+              <td>{{ "%.1f"|format(row.avg_health_score) }}%</td>
+              <td>{{ "%.1f"|format(row.avg_age_years) }} yrs</td>
+              <td>{{ row.at_risk_count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <h3 class="dash-section-title">🔻&nbsp;Risk ranking - lowest health first</h3>
+        <table class="score-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Substation</th>
+              <th>Health</th>
+              <th>Age</th>
+              <th>Tier</th>
+              <th>Next maintenance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in asset_management.risk_rows %}
+            <tr>
+              <td>{{ row.id }}</td>
+              <td>{{ row.substation }}</td>
+              <td>{{ "%.1f"|format(row.health_score) }}%</td>
+              <td>{{ "%.1f"|format(row.age_years) }} yrs</td>
+              <td>
+                <span class="tier-badge">
+                  <span class="tier-dot" style="background: {{ asset_management.tier_color_map[row.risk_tier] }}"></span>
+                  {{ row.risk_tier | capitalize }}
+                </span>
+              </td>
+              <td>{{ row.next_maintenance_date }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      {% endif %}
+
+      <!-- ================= Audit & Governance ================= -->
+      {% if audit %}
+      <section class="panel" data-panel="audit">
+        <h2>🕵️&nbsp;Audit &amp; Governance</h2>
+        <p class="assistant-sub">Read-only records - who did what, and every field submission on the record. No user management or write actions live here.</p>
+
+        <h3 class="dash-section-title">📝&nbsp;Activity log</h3>
+        <table class="score-table">
+          <thead>
+            <tr><th>When</th><th>User</th><th>Action</th></tr>
+          </thead>
+          <tbody>
+            {% for row in audit.activity %}
+            <tr>
+              <td>{{ row.created_at }}</td>
+              <td>{{ row.username }}</td>
+              <td>{{ row.action }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <h3 class="dash-section-title">🔌&nbsp;Recent transformer inspections</h3>
+        <table class="score-table">
+          <thead>
+            <tr><th>When</th><th>Transformer</th><th>Technician</th><th>Status</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            {% for row in audit.inspections %}
+            <tr>
+              <td>{{ row.created_at }}</td>
+              <td>{{ row.transformer_id }}</td>
+              <td>{{ row.technician_name }}</td>
+              <td>{{ row.status }}</td>
+              <td>{{ row.notes }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <h3 class="dash-section-title">🔎&nbsp;Recent theft investigations</h3>
+        <table class="score-table">
+          <thead>
+            <tr><th>When</th><th>Meter</th><th>Technician</th><th>Status</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            {% for row in audit.meter_investigations %}
+            <tr>
+              <td>{{ row.created_at }}</td>
+              <td>{{ row.meter_id }}</td>
+              <td>{{ row.technician_name }}</td>
+              <td>{{ row.status }}</td>
+              <td>{{ row.notes }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      {% endif %}
 
       <!-- ================= Transformer / Meter / Feeder ================= -->
       {% for panel in [transformer, meter, feeder] %}
@@ -315,7 +482,7 @@
 
         {% if panel.map_html %}
         <div class="landscape-wrap">
-          <h3>Outage risk map</h3>
+          <h3>{{ panel.entity_label | capitalize }} risk map</h3>
           <p class="landscape-caption">Real GPS coordinates from the {{ panel.entity_label }} fleet around Tzaneen and the Mopani District, colored by risk tier.</p>
           <div class="landscape-guide">
             <div class="landscape-legend">
@@ -781,10 +948,15 @@
         card.innerHTML =
           '<div class="technician-card-head">' +
             "<strong>" + item.id + "</strong>" +
-            ' <span class="assistant-tag" style="background:' + color + '">' + item.priority_tier.toUpperCase() + "</span>" +
+            ' <span class="assistant-tag" style="background:' + color + '">Theft risk ' + item.theft_risk_pct.toFixed(0) + "% · " + item.priority_tier.toUpperCase() + "</span>" +
           "</div>" +
-          '<div class="assistant-meta">Anomaly score ' + item.anomaly_score.toFixed(0) +
+          '<div class="assistant-meta">Expected ' + item.expected_kwh.toFixed(0) + " kWh vs. actual " + item.actual_kwh.toFixed(0) +
+            " kWh (" + item.consumption_deviation_pct.toFixed(0) + "% deviation)" +
             (item.top_reasons ? " · " + item.top_reasons : "") + "</div>" +
+          '<div class="assistant-meta">' +
+            (item.substation_name ? item.substation_name + " · " : "") +
+            item.confirmed_incidents_nearby_12mo + " previous incident(s) nearby (12mo)" + "</div>" +
+          (item.recommended_action ? '<div class="assistant-meta">Recommendation: ' + item.recommended_action + "</div>" : "") +
           '<div class="assistant-meta">' + lastLine + "</div>" +
           '<button type="button" class="inspect-toggle">Update investigation</button>' +
           '<form class="inspection-form" hidden enctype="multipart/form-data">' +
@@ -1036,7 +1208,8 @@
           var color = TIER_COLORS[item.priority_tier] || "#4a5f85";
           row.innerHTML =
             "<div><strong>" + item.id + "</strong>" +
-            ' <span class="assistant-tag" style="background:' + color + '">' + item.priority_tier.toUpperCase() + "</span></div>" +
+            ' <span class="assistant-tag" style="background:' + color + '">Theft risk ' + item.theft_risk_pct.toFixed(0) + "% · " + item.priority_tier.toUpperCase() + "</span></div>" +
+            (item.substation_name ? '<div class="assistant-meta">' + item.substation_name + "</div>" : "") +
             '<button type="button" class="inspect-toggle">Unassign</button>';
           row.querySelector("button").addEventListener("click", function () {
             fetch("/api/meter-technicians/" + select.value + "/assignments/" + item.id, { method: "DELETE" })

@@ -33,8 +33,8 @@ ENTITIES = {
         "csv": "meter_theft_scores.csv",
         "id_col": "meter_id",
         "id_prefix": "M",
-        "score_col": "anomaly_score",
-        "score_label": "anomaly score",
+        "score_col": "theft_risk_pct",
+        "score_label": "theft risk %",
         "tier_col": "priority_tier",
         "flag_col": "investigation_flag",
         "aliases": ["meter", "meters"],
@@ -91,7 +91,7 @@ HELP_TEXT = (
     "• “why is T0208 high risk?”\n"
     "• “why are feeders emergency?” (most common reasons across a group)\n"
     "• “top 5 riskiest meters”\n"
-    "• “average anomaly score for meters”\n"
+    "• “average theft risk for meters”\n"
     "• “which feeders are flagged?”\n"
     "• “which transformers are high-risk?” (elevated or emergency)\n"
     "Transformer-specific: “predict T0208”, “health of T0208”, “recommend "

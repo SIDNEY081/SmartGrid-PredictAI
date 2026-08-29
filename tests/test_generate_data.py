@@ -15,7 +15,11 @@ TRANSFORMER_HISTORY_COLUMNS = {
 METER_COLUMNS = {
     "meter_id", "declared_kwh", "transformer_feed_estimate_kwh",
     "historical_avg_kwh", "pct_drop_recent", "night_usage_ratio",
-    "area_theft_history_rate", "is_theft",
+    "area_theft_history_rate", "meter_reversal_events_6mo",
+    "zero_consumption_days_90d", "tamper_alarm_count",
+    "confirmed_incidents_nearby_12mo", "feeder_id", "cnc",
+    "substation_id", "substation_name", "meter_lat", "meter_lon",
+    "is_theft",
 }
 FEEDER_COLUMNS = {
     "feeder_id", "cnc", "substation_id", "substation_name",

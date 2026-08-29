@@ -58,9 +58,16 @@ enforced server-side on every route - not just a hidden nav button.
 | Role | Username | Password | Sees |
 |---|---|---|---|
 | System Administrator | `admin` | `admin123` | Everything, plus Settings (user management, dataset stats, activity log) |
-| Maintenance Engineer | `engineer` | `engineer123` | Transformer/Feeder tabs, AI Assistant, Reports, Assign Technicians (transformer maintenance dispatch) |
-| Revenue Protection Officer | `investigator` | `investigator123` | Meter Theft Detection tab, Assign Investigators (technician dispatch for suspected theft) |
+| Asset Management (role key `engineer`) | `engineer` | `engineer123` | Transformer/Feeder tabs, Asset Management, AI Assistant, Reports, Assign Technicians (transformer maintenance dispatch) |
+| Revenue Protection / Loss Control (role key `investigator`) | `investigator` | `investigator123` | Meter Theft Detection tab, Assign Investigators (technician dispatch for suspected theft) |
 | Field Technician | `technician` | `tech123` | Only their assigned transformers/meters - AI recommendations + inspection/investigation submission (status, notes, optional photo) |
+| Management / Executive | `manager` | `manager123` | Read-only: Executive Overview, Asset Management, and per-model dashboards; AI Assistant Q&A but no report generation; no assignment or write actions |
+| Auditor / Compliance | `auditor` | `auditor123` | Read-only: the activity log and every inspection/investigation record - no user management, no operational access |
+
+Role *keys* (used internally and in `data/app.db`) stayed stable even where
+the display label changed, so `engineer`/`investigator` mean the same
+permissions as before under a renamed label - see `dashboard/auth.py`'s
+`ROLE_LABELS` for the full mapping.
 
 Panels are split by domain, not seniority: the engineer owns asset
 reliability (transformers/feeders) and the investigator owns revenue

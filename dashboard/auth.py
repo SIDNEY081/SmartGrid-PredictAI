@@ -6,19 +6,35 @@ hashing (werkzeug, already a Flask dependency), real sessions, real
 per-role data (technician assignments, inspection submissions, an activity
 log) - not a cosmetic login screen in front of an otherwise-open app.
 
-Four roles, matching an Eskom-style operations team:
-    administrator   - manage users, full visibility, system/dataset info
-    engineer        - run predictions, generate reports, use the AI Assistant,
+Six roles, modeling a least-privilege Eskom-style access structure (role
+*keys* below are the stable internal identifiers; display names live in
+ROLE_LABELS and have since been renamed to match the enterprise model):
+    administrator (System Administrator)
+                    - manage users, full visibility, system/dataset info
+    engineer (Asset Management)
+                    - run predictions, generate reports, use the AI Assistant,
                       assign transformers to technicians
-    investigator    - Revenue Protection Officer: assign technicians to
-                      meters flagged for suspected theft
-    technician      - view assigned transformers/meters, submit inspections
+    investigator (Revenue Protection / Loss Control)
+                    - assign technicians to meters flagged for suspected theft
+    technician (Field Technician)
+                    - view assigned transformers/meters, submit inspections
                       and theft investigations
+    manager (Management / Executive)
+                    - read-only: Executive Overview, Asset Management, and
+                      per-model dashboards; no assignment or write actions
+    auditor (Auditor / Compliance)
+                    - read-only: the activity log and inspection/investigation
+                      history, nothing else - can't see or touch user accounts
+
+This is intentionally not an "everyone sees everything" prototype: each role
+only reaches the panels/APIs its PANEL_ROLES entry (dashboard/app.py) grants,
+mirroring the least-privilege principle a real utility's IT/security team
+would require.
 
 The database lives at data/app.db, separate from the synthetic asset CSVs
-in the same folder. init_db() creates the schema and seeds three demo
-accounts (one per role) the first time it runs, so a clean checkout works
-immediately - see DEMO_ACCOUNTS below for the credentials.
+in the same folder. init_db() creates the schema and seeds one demo account
+per role the first time it runs, so a clean checkout works immediately - see
+DEMO_ACCOUNTS below for the credentials.
 """
 
 import sqlite3
@@ -33,12 +49,18 @@ ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = ROOT / "data" / "app.db"
 UPLOAD_DIR = ROOT / "data" / "inspection_uploads"
 
-ROLES = ["administrator", "engineer", "investigator", "technician"]
+# Role *keys* (used in session/DB) are kept stable even where the display
+# label has since been renamed for the enterprise access model - only
+# ROLE_LABELS changed, not the underlying identifier, so this rename carries
+# zero risk to existing PANEL_ROLES/roles_required() checks.
+ROLES = ["administrator", "engineer", "investigator", "technician", "manager", "auditor"]
 ROLE_LABELS = {
     "administrator": "System Administrator",
-    "engineer": "Maintenance Engineer",
-    "investigator": "Revenue Protection Officer",
+    "engineer": "Asset Management",
+    "investigator": "Revenue Protection / Loss Control",
     "technician": "Field Technician",
+    "manager": "Management / Executive",
+    "auditor": "Auditor / Compliance",
 }
 
 # Demo credentials for this prototype - printed to the console on first
@@ -48,6 +70,8 @@ DEMO_ACCOUNTS = [
     ("engineer", "engineer123", "Sipho Dlamini", "engineer"),
     ("investigator", "investigator123", "Naledi Sithole", "investigator"),
     ("technician", "tech123", "Lerato Mokoena", "technician"),
+    ("manager", "manager123", "Thandiwe Nkosi", "manager"),
+    ("auditor", "auditor123", "Piet van der Merwe", "auditor"),
 ]
 # How many transformers/meters the demo technician account starts with
 # assigned - real rows in the assignments/meter_assignments tables, not a
@@ -497,6 +521,22 @@ def count_unassigned_emergency_meters():
     return len(emergency_ids - assigned_ids)
 
 
+def count_overdue_transformer_maintenance():
+    """Real backlog count for Asset Management - how many transformers have
+    already passed the model's own next_maintenance_date, not a decorative
+    number. No DB involved, purely a CSV comparison against today's date."""
+    import pandas as pd
+
+    path = ROOT / "data" / "transformer_risk_scores.csv"
+    if not path.exists():
+        return 0
+    scores = pd.read_csv(path)
+    if "next_maintenance_date" not in scores.columns:
+        return 0
+    due_dates = pd.to_datetime(scores["next_maintenance_date"])
+    return int((due_dates < pd.Timestamp(datetime.now().date())).sum())
+
+
 # --------------------------------------------------------------------------
 # Activity log
 # --------------------------------------------------------------------------
@@ -512,6 +552,33 @@ def log_activity(user, action):
 def recent_activity(limit=50):
     rows = get_db().execute(
         "SELECT * FROM activity_log ORDER BY created_at DESC LIMIT ?", (limit,)
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+# --------------------------------------------------------------------------
+# Fleet-wide audit views - unlike get_recent_inspections_by_technician /
+# get_recent_meter_investigations_by_technician (scoped to one technician's
+# own submissions), these are unfiltered across every technician - built for
+# the auditor role, which needs to see everyone's submissions, not just its
+# own.
+# --------------------------------------------------------------------------
+def recent_inspections_fleet(limit=30):
+    rows = get_db().execute(
+        "SELECT i.*, u.full_name AS technician_name FROM inspections i "
+        "JOIN users u ON u.id = i.technician_id "
+        "ORDER BY i.created_at DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def recent_meter_investigations_fleet(limit=30):
+    rows = get_db().execute(
+        "SELECT i.*, u.full_name AS technician_name FROM meter_investigations i "
+        "JOIN users u ON u.id = i.technician_id "
+        "ORDER BY i.created_at DESC LIMIT ?",
+        (limit,),
     ).fetchall()
     return [dict(r) for r in rows]
 
