@@ -234,9 +234,13 @@ def landscape_chart(df, x_col, y_col, z_col, tier_col, id_col, labels, tier_orde
 def risk_map(df, lat_col, lon_col, tier_col, id_col, tier_order, entity_label):
     """Real geographic map of the scored fleet - actual gps_lat/gps_lon from
     the asset data, colored by the same severity ramp as the tier bar chart.
-    Uses Carto's dark-matter basemap tiles, which (unlike Mapbox's own
-    styles) render without an API token - appropriate for a prototype with
-    no Mapbox account, and it matches the dark theme for free."""
+    Uses OpenStreetMap's own tiles, which (unlike Mapbox's styles) need no
+    API token - appropriate for a prototype with no Mapbox/Carto account.
+    Carto's "carto-darkmatter" style used to be the free no-token choice
+    here too and matched the dark theme for free, but Carto now requires an
+    account and API key even for that style - it was rendering "API KEY
+    REQUIRED" watermark tiles instead of a map. OSM's tiles are light, which
+    clashes with the dark theme, but they actually render."""
     fig = go.Figure()
     for tier, color in zip(tier_order, STATUS_COLORS):
         sub = df[df[tier_col] == tier]
@@ -259,7 +263,7 @@ def risk_map(df, lat_col, lon_col, tier_col, id_col, tier_order, entity_label):
         font=CHART_FONT,
         legend=dict(orientation="h", yanchor="bottom", y=1.01, x=0, bgcolor="rgba(0,0,0,0)"),
         mapbox=dict(
-            style="carto-darkmatter",
+            style="open-street-map",
             center=dict(lat=float(df[lat_col].mean()), lon=float(df[lon_col].mean())),
             zoom=9,
         ),

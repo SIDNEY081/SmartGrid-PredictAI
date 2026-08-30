@@ -58,7 +58,8 @@ enforced server-side on every route - not just a hidden nav button.
 | Role | Username | Password | Sees |
 |---|---|---|---|
 | System Administrator | `admin` | `admin123` | Everything, plus Settings (user management, dataset stats, activity log) |
-| Asset Management (role key `engineer`) | `engineer` | `engineer123` | Transformer/Feeder tabs, Asset Management, AI Assistant, Reports, Assign Technicians (transformer maintenance dispatch) |
+| Asset Management (role key `engineer`) | `engineer` | `engineer123` | Transformer/Feeder tabs, Asset Management, AI Assistant, Reports, Assign Technicians - but only as an escalation fallback: overdue or emergency-tier transformers, not routine dispatch (see Dispatcher) |
+| Field Work Dispatcher (role key `dispatcher`) | `dispatcher` | `dispatcher123` | Transformer tab, Asset Management, Assign Technicians - the primary, day-to-day owner of transformer-technician assignment, unrestricted by tier |
 | Revenue Protection / Loss Control (role key `investigator`) | `investigator` | `investigator123` | Meter Theft Detection tab, Assign Investigators (technician dispatch for suspected theft) |
 | Field Technician | `technician` | `tech123` | Only their assigned transformers/meters - AI recommendations + inspection/investigation submission (status, notes, optional photo) |
 | Management / Executive | `manager` | `manager123` | Read-only: Executive Overview, Asset Management, and per-model dashboards; AI Assistant Q&A but no report generation; no assignment or write actions |
@@ -74,6 +75,14 @@ reliability (transformers/feeders) and the investigator owns revenue
 protection (meter theft) - neither sees the other's dashboard, since a role
 should never have view access to a panel it has no action on. The
 Administrator sees and can act on both.
+
+Transformer-technician assignment is split the same way meter assignment
+already was: Dispatcher is the day-to-day owner (any tier, no restriction),
+while Engineer keeps assignment access only as a fallback for transformers
+that are overdue for maintenance or already at emergency risk tier - real
+fields off `transformer_risk_scores.csv`
+(`auth.transformer_is_escalation_eligible()`), enforced server-side on both
+assign and unassign, not just hidden in the UI.
 
 These are demo credentials for this prototype, printed to the console the
 first time `dashboard/app.py` seeds `data/app.db` - not a real secret
