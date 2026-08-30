@@ -49,7 +49,7 @@
       </div>
 
       <nav class="side-nav">
-        <button type="button" class="tab-btn" data-panel="home">🏠&nbsp;{% if user.role in ["administrator", "engineer", "investigator", "manager"] %}Executive Overview{% else %}Dashboard{% endif %}</button>
+        <button type="button" class="tab-btn" data-panel="home">🏠&nbsp;{% if user.role in ["administrator", "engineer", "dispatcher", "investigator", "manager"] %}Executive Overview{% else %}Dashboard{% endif %}</button>
         {% if "transformer" in allowed_panels %}
         <button type="button" class="tab-btn" data-panel="transformer">📈&nbsp;Transformer Prediction</button>
         {% endif %}
@@ -539,11 +539,14 @@
       </section>
       {% endif %}
 
-      <!-- ================= Assign Technicians (engineer / administrator) ================= -->
+      <!-- ================= Assign Technicians (dispatcher / engineer / administrator) ================= -->
       {% if "assignments" in allowed_panels %}
       <section class="panel" data-panel="assignments">
         <h2>👷&nbsp;Assign Technicians</h2>
         <p class="assistant-sub">Assign specific transformers to a technician, based on their risk level - a newly created technician starts with none, and only sees whatever's assigned here.</p>
+        {% if user.role == "engineer" %}
+        <p class="assistant-sub">As Asset Management, you can only assign <strong>overdue</strong> or <strong>emergency-tier</strong> transformers - routine dispatch belongs to Field Work Dispatch.</p>
+        {% endif %}
         <label class="tech-select-label" for="tech-assign-select">Technician</label>
         <select id="tech-assign-select">
           <option value="">Loading technicians…</option>
@@ -596,7 +599,7 @@
           <label>Password <input type="password" name="password" required></label>
           <label>Role
             <select name="role">
-              {% for r in ["administrator", "engineer", "technician"] %}
+              {% for r in ["administrator", "engineer", "dispatcher", "technician"] %}
               <option value="{{ r }}">{{ r.replace("_", " ") | title }}</option>
               {% endfor %}
             </select>

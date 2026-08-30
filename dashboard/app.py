@@ -72,6 +72,10 @@ else:
 # dispatching technicians to investigate). Neither sees the other's
 # dashboard - a role should never be able to view a panel it has no action
 # on. Administrator sees and can act on everything, for oversight.
+#
+# dispatcher is a narrow role carved out of engineer's old day-to-day
+# assignment duty: it sees only enough (transformer risk tiers, the asset
+# management backlog) to do that one job, plus the assignments panel itself.
 PANEL_ROLES = {
     "home": set(auth.ROLES),
     # manager gets read-only Q&A (predict/health/history/compare) but never
@@ -79,12 +83,12 @@ PANEL_ROLES = {
     # AI_SYSTEM_PROMPT rule that already tells the assistant to explain that
     # restriction rather than silently refuse.
     "assistant": {"administrator", "engineer", "manager"},
-    "transformer": {"administrator", "engineer", "manager"},
+    "transformer": {"administrator", "engineer", "dispatcher", "manager"},
     "meter": {"administrator", "investigator", "manager"},
     "feeder": {"administrator", "engineer", "manager"},
-    "asset_management": {"administrator", "engineer", "manager"},
+    "asset_management": {"administrator", "engineer", "dispatcher", "manager"},
     "reports": {"administrator", "engineer"},
-    "assignments": {"administrator", "engineer"},
+    "assignments": {"administrator", "engineer", "dispatcher"},
     "meter_assignments": {"administrator", "investigator"},
     "settings": {"administrator"},
     # Read-only activity/inspection/investigation trail - deliberately NOT
@@ -93,9 +97,15 @@ PANEL_ROLES = {
     "audit": {"administrator", "auditor"},
 }
 
-# Roles allowed to assign/unassign technicians to transformers - engineers
-# plan field work day to day, administrators retain it for oversight/setup.
-ASSIGNMENT_ROLES = ("administrator", "engineer")
+# Roles allowed to assign/unassign technicians to transformers. Dispatcher is
+# the primary, day-to-day owner of this queue, unrestricted by tier.
+# Administrator retains it for oversight/setup. Engineer keeps it too, but
+# only as an escalation fallback for when Dispatch hasn't gotten to a
+# transformer yet - route-level access is granted here, then narrowed to
+# overdue/emergency-only inside the handlers via
+# auth.transformer_is_escalation_eligible().
+ASSIGNMENT_ROLES = ("administrator", "dispatcher", "engineer")
+ENGINEER_ESCALATION_ONLY = {"engineer"}
 
 # Roles allowed to assign/unassign technicians to meters flagged for
 # suspected theft - deliberately NOT engineer: revenue-protection dispatch
@@ -989,6 +999,10 @@ def admin_technician_assignments(technician_id):
         valid_ids = set(pd.read_csv(DATA / "transformer_data.csv")["transformer_id"])
         if transformer_id not in valid_ids:
             return jsonify({"error": f"{transformer_id} is not a known transformer id"}), 400
+        if auth.current_user()["role"] in ENGINEER_ESCALATION_ONLY and not auth.transformer_is_escalation_eligible(transformer_id):
+            return jsonify({
+                "error": f"{transformer_id} is not overdue or emergency-tier - routine assignments go through Dispatch."
+            }), 403
         auth.assign_transformer(technician_id, transformer_id)
         auth.log_activity(auth.current_user(), f"assigned {transformer_id} to technician #{technician_id}")
         return jsonify({"ok": True}), 201
@@ -1006,6 +1020,10 @@ def admin_technician_assignments(technician_id):
 @app.route("/api/admin/technicians/<int:technician_id>/assignments/<transformer_id>", methods=["DELETE"])
 @auth.roles_required(*ASSIGNMENT_ROLES)
 def admin_technician_unassign(technician_id, transformer_id):
+    if auth.current_user()["role"] in ENGINEER_ESCALATION_ONLY and not auth.transformer_is_escalation_eligible(transformer_id):
+        return jsonify({
+            "error": f"{transformer_id} is not overdue or emergency-tier - routine assignments go through Dispatch."
+        }), 403
     auth.unassign_transformer(technician_id, transformer_id)
     auth.log_activity(auth.current_user(), f"unassigned {transformer_id} from technician #{technician_id}")
     return jsonify({"ok": True})

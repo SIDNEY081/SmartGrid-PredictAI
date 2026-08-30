@@ -6,14 +6,20 @@ hashing (werkzeug, already a Flask dependency), real sessions, real
 per-role data (technician assignments, inspection submissions, an activity
 log) - not a cosmetic login screen in front of an otherwise-open app.
 
-Six roles, modeling a least-privilege Eskom-style access structure (role
+Seven roles, modeling a least-privilege Eskom-style access structure (role
 *keys* below are the stable internal identifiers; display names live in
 ROLE_LABELS and have since been renamed to match the enterprise model):
     administrator (System Administrator)
                     - manage users, full visibility, system/dataset info
     engineer (Asset Management)
-                    - run predictions, generate reports, use the AI Assistant,
-                      assign transformers to technicians
+                    - run predictions, generate reports, use the AI Assistant.
+                      Can also assign transformers to technicians, but only as
+                      an escalation fallback - overdue or emergency-tier
+                      transformers only, for when Dispatch hasn't gotten to
+                      them. Routine dispatch is Dispatcher's job, not theirs.
+    dispatcher (Field Work Dispatcher)
+                    - day-to-day assignment of transformers to technicians;
+                      the primary owner of that queue, unrestricted by tier
     investigator (Revenue Protection / Loss Control)
                     - assign technicians to meters flagged for suspected theft
     technician (Field Technician)
@@ -53,10 +59,11 @@ UPLOAD_DIR = ROOT / "data" / "inspection_uploads"
 # label has since been renamed for the enterprise access model - only
 # ROLE_LABELS changed, not the underlying identifier, so this rename carries
 # zero risk to existing PANEL_ROLES/roles_required() checks.
-ROLES = ["administrator", "engineer", "investigator", "technician", "manager", "auditor"]
+ROLES = ["administrator", "engineer", "dispatcher", "investigator", "technician", "manager", "auditor"]
 ROLE_LABELS = {
     "administrator": "System Administrator",
     "engineer": "Asset Management",
+    "dispatcher": "Field Work Dispatcher",
     "investigator": "Revenue Protection / Loss Control",
     "technician": "Field Technician",
     "manager": "Management / Executive",
@@ -68,8 +75,11 @@ ROLE_LABELS = {
 DEMO_ACCOUNTS = [
     ("admin", "admin123", "Sidney Mpenyana", "administrator"),
     ("engineer", "engineer123", "Sipho Dlamini", "engineer"),
+    ("dispatcher", "dispatcher123", "Bongani Khumalo", "dispatcher"),
     ("investigator", "investigator123", "Naledi Sithole", "investigator"),
     ("technician", "tech123", "Lerato Mokoena", "technician"),
+    ("enica", "enica123", "Enica", "technician"),
+    ("prescila", "prescila123", "Prescila", "technician"),
     ("manager", "manager123", "Thandiwe Nkosi", "manager"),
     ("auditor", "auditor123", "Piet van der Merwe", "auditor"),
 ]
@@ -519,6 +529,32 @@ def count_unassigned_emergency_meters():
     emergency_ids = set(scores.loc[scores["priority_tier"] == "emergency", "meter_id"])
     assigned_ids = {r["meter_id"] for r in get_db().execute("SELECT DISTINCT meter_id FROM meter_assignments")}
     return len(emergency_ids - assigned_ids)
+
+
+def transformer_is_escalation_eligible(transformer_id):
+    """Whether `transformer_id` is fair game for an Engineer's fallback
+    assignment power - overdue for its own next_maintenance_date, or already
+    at emergency risk tier. Real fields off transformer_risk_scores.csv, not
+    an invented SLA/timer on how long Dispatch has had it - this app has no
+    such timer to check. Routine (non-overdue, non-emergency) transformers
+    are Dispatcher's exclusive queue."""
+    import pandas as pd
+
+    path = ROOT / "data" / "transformer_risk_scores.csv"
+    if not path.exists():
+        return False
+    scores = pd.read_csv(path)
+    row = scores.loc[scores["transformer_id"] == transformer_id]
+    if row.empty:
+        return False
+    row = row.iloc[0]
+    if row.get("risk_tier") == "emergency":
+        return True
+    if "next_maintenance_date" in scores.columns:
+        due = pd.to_datetime(row["next_maintenance_date"])
+        if pd.notna(due) and due < pd.Timestamp(datetime.now().date()):
+            return True
+    return False
 
 
 def count_overdue_transformer_maintenance():
