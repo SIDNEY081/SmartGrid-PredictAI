@@ -268,7 +268,10 @@ def risk_map(df, lat_col, lon_col, tier_col, id_col, tier_order, entity_label):
             zoom=9,
         ),
     )
-    return fig.to_html(full_html=False, include_plotlyjs=False, config={"displayModeBar": False})
+    return fig.to_html(
+        full_html=False, include_plotlyjs=False,
+        config={"displayModeBar": False, "responsive": True},
+    )
 
 
 def theft_ntl_scatter(df, tariff):
