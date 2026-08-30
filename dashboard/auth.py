@@ -78,8 +78,8 @@ DEMO_ACCOUNTS = [
     ("dispatcher", "dispatcher123", "Bongani Khumalo", "dispatcher"),
     ("investigator", "investigator123", "Naledi Sithole", "investigator"),
     ("technician", "tech123", "Lerato Mokoena", "technician"),
-    ("enica", "enica123", "Enica", "technician"),
-    ("prescila", "prescila123", "Prescila", "technician"),
+    ("enica", "enica123", "Enica Masuku", "technician"),
+    ("prescila", "prescila123", "Prescilla Mathaba", "technician"),
     ("manager", "manager123", "Thandiwe Nkosi", "manager"),
     ("auditor", "auditor123", "Piet van der Merwe", "auditor"),
 ]
