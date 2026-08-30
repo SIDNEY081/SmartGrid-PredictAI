@@ -524,6 +524,14 @@
           {{ panel.landscape_html | safe }}
         </div>
         {% endif %}
+
+        {% if panel.ntl_chart_html %}
+        <div class="landscape-wrap">
+          <h3>Billed revenue vs. metered consumption</h3>
+          <p class="landscape-caption">Non-technical-loss detection: what each account was billed against what the transformer feed shows it actually drew. A theft account clusters low-right - high consumption, low bill.</p>
+          {{ panel.ntl_chart_html | safe }}
+        </div>
+        {% endif %}
       </section>
       {% endif %}
       {% endfor %}

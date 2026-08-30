@@ -267,6 +267,51 @@ def risk_map(df, lat_col, lon_col, tier_col, id_col, tier_order, entity_label):
     return fig.to_html(full_html=False, include_plotlyjs=False, config={"displayModeBar": False})
 
 
+def theft_ntl_scatter(df, tariff):
+    """Non-technical-loss scatter: billed revenue (from the customer-declared
+    reading, actual_kwh) against metered consumption (the transformer feed
+    estimate, expected_kwh) - both real per-meter fields already computed by
+    models/theft_detection.py, not a synthetic demo axis. A theft account
+    clusters low-right: the feed shows load being drawn but the bill doesn't
+    reflect it. Flagged accounts (investigation_flag) are the same ones
+    driving the meter panel's tier chart and worklist - one consistent flag,
+    not a second detector."""
+    normal = df[df["investigation_flag"] == 0]
+    flagged = df[df["investigation_flag"] == 1]
+    if len(normal) > 1500:
+        normal = normal.sample(n=1500, random_state=42)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=normal["expected_kwh"], y=normal["actual_kwh"] * tariff,
+        mode="markers", name="Normal accounts",
+        marker=dict(size=6, color="#5b8def", opacity=0.5, line=dict(width=0)),
+        customdata=normal[["meter_id"]],
+        hovertemplate="<b>%{customdata[0]}</b><br>Consumption: %{x:,.0f} kWh<br>Billed: R%{y:,.0f}<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=flagged["expected_kwh"], y=flagged["actual_kwh"] * tariff,
+        mode="markers", name="Flagged (high use, low bill)",
+        marker=dict(size=8, color="#ef4444", opacity=0.9, line=dict(width=1, color="#fca5a5")),
+        customdata=flagged[["meter_id"]],
+        hovertemplate="<b>%{customdata[0]}</b><br>Consumption: %{x:,.0f} kWh<br>Billed: R%{y:,.0f}<extra></extra>",
+    ))
+    fig.update_layout(
+        height=360,
+        paper_bgcolor=CHART_BG, plot_bgcolor=CHART_BG, font=CHART_FONT,
+        hoverlabel=dict(bgcolor=CHART_HOVER_BG, font_color="#eef3fc", bordercolor=CHART_AXIS_LINE),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, bgcolor="rgba(0,0,0,0)"),
+        xaxis=dict(title="Metered consumption (kWh)", showgrid=True, gridcolor=CHART_GRID, linecolor=CHART_AXIS_LINE),
+        yaxis=dict(title="Billed revenue (R)", showgrid=True, gridcolor=CHART_GRID, linecolor=CHART_AXIS_LINE, zeroline=False),
+        margin=dict(l=55, r=20, t=10, b=45),
+        autosize=True,
+    )
+    return fig.to_html(
+        full_html=False, include_plotlyjs=False,
+        config={"displayModeBar": False, "responsive": True},
+    )
+
+
 def build_panel(
     csv_path, id_col, score_col, score_label, tier_col, flag_col, tier_order, entity_label, slug,
     raw_path=None, landscape_cols=None, landscape_labels=None, feeder_col=None, map_cols=None,
@@ -517,6 +562,9 @@ def index():
             landscape_labels=["Recent usage drop (%)", "Night usage ratio", "Theft risk %"],
             feeder_col="feeder_id",
             map_cols=("meter_lat", "meter_lon"),
+        )
+        meter["ntl_chart_html"] = theft_ntl_scatter(
+            pd.read_csv(DATA / "meter_theft_scores.csv"), TARIFF_RAND_PER_KWH_DISPLAY
         )
     if role in PANEL_ROLES["feeder"]:
         feeder = build_panel(
