@@ -1106,7 +1106,7 @@
               return;
             }
             select.innerHTML = data.technicians.map(function (t) {
-              return '<option value="' + t.id + '">' + t.full_name + " (" + t.username + ")</option>";
+              return '<option value="' + t.id + '">' + t.full_name + " — Field Technician</option>";
             }).join("");
             loadAssignments();
           })
@@ -1191,7 +1191,7 @@
               return;
             }
             select.innerHTML = data.technicians.map(function (t) {
-              return '<option value="' + t.id + '">' + t.full_name + " (" + t.username + ")</option>";
+              return '<option value="' + t.id + '">' + t.full_name + " — Field Technician</option>";
             }).join("");
             loadAssignments();
           })
